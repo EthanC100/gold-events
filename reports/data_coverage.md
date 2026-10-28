@@ -32,4 +32,3 @@ daily series' own span with no observation (not meaningful for weekly/monthly se
 - **dfii10** starts 2003-01-02, after the 1990-01-02 start (13.0 years missing).
 - **fed_balance_sheet** starts 2002-12-18, after the 1990-01-02 start (13.0 years missing).
 - **bank_reserves** starts 2002-12-18, after the 1990-01-02 start (13.0 years missing).
-- **umcsent** ends 2026-09-01; may be stale.

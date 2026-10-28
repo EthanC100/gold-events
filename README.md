@@ -4,7 +4,8 @@ An event study of how gold and silver react to geopolitical and policy events,
 with controls for the dollar and real yields. Python, pandas, free data only.
 
 Status: data pipeline, event-study maths, the midterm analysis, a 68-event list with
-hand and measured severity, and a first (v1) regression model fitted on 2000-2021.
+hand and measured severity, a first (v1) regression model fitted on 2000-2021, and a
+one-shot out-of-sample test of the frozen v1 on 2022 onward.
 
 ## Quick start
 
@@ -16,6 +17,7 @@ python -m gold_events.events     # measured severity -> columns added in place t
 python -m gold_events.mechanical # index-flagged events -> data/events_mechanical.csv, reports/events_mechanical.md
 python -m gold_events.model      # v1 fit + refit on 2000-08-30..2021-12-31 -> reports/v1_fit.md
 python -m gold_events.strategies # retention (H3) and four trading rules, in sample -> reports/strategies_v1.md
+python -m gold_events.oos        # frozen v1 on 2022-latest, no refit -> reports/v1_out_of_sample.md
 pytest                           # tests for the maths (event study, scoring, model)
 ```
 
@@ -33,9 +35,11 @@ gold_events/
   mechanical.py    mechanical event list: days when GPR or EPU is in its top 5%, merged into runs
   model.py         v1 regression: returns on controls + severity x event terms, and the refit
   strategies.py    retention of net moves and four trading rules on both lists, with benchmarks
+  oos.py           out-of-sample test of the frozen v1 (2022 to latest): errors, hit rates, drift, events
 data/
   events.csv       68 hand-curated events with hand and measured severity columns
   events_mechanical.csv  202 index-flagged events 1990-2021, category left blank
+  v1_coefficients.csv    the frozen v1 control coefficients used by the out-of-sample test
   daily.parquet    aligned daily frame (built, not committed)
   cache/           raw downloads (built, not committed)
 reports/
@@ -44,8 +48,9 @@ reports/
   events_mechanical.md  mechanical list vs hand list: overlap, misses, largest unlisted spikes
   v1_fit.md        v1 model coefficients, errors against baselines, refit comparison, readings
   strategies_v1.md retention stats, rule-by-rule metrics, year stability, verdicts
+  v1_out_of_sample.md  frozen v1 on 2022-2026: errors vs baselines, drift, event net moves, verdict
 tests/
-  test_event_study.py, test_events.py, test_mechanical.py, test_model.py, test_strategies.py
+  test_event_study.py, test_events.py, test_mechanical.py, test_model.py, test_strategies.py, test_oos.py
 ```
 
 ## Modules
@@ -200,6 +205,38 @@ frame is truncated before anything is computed; tests check the cut).
   controls-only baseline on all windows and on each list's event windows, reports the mean
   out-of-fold abnormal return on each list's windows as a selection check, and refits the
   hand pooled term without September 11, whose severity (z = 19) dominates the scale.
+
+### `gold_events.oos`
+
+A one-shot out-of-sample test of v1, run once and not to be re-tuned. The v1 control
+coefficients and intercept (real yield, DXY, VIX, GPR change; the event terms were shrunk to
+zero by cross-validation) are reproduced from the 2000-08-30..2021-12-31 frame, saved to
+`data/v1_coefficients.csv`, and applied unchanged to every 5- and 20-day window from
+2022-01-01 to the latest close. Nothing is refitted.
+
+* **Errors.** RMSE, mean error and R² against zero for the frozen v1, the no-change baseline
+  and a controls-only OLS refitted on the test windows (in-sample on the test period, so an
+  upper bound for the specification, with its coefficients beside v1's to show the drift).
+* **Direction.** Hit rate of sign(prediction) against sign(realised), with the share of rising
+  windows as the reference.
+* **Trimmed.** Everything again with the five largest windows (by absolute realised return)
+  removed.
+* **Events.** The test-period events (the 2022 invasion and reserve freeze, the June 2022 rate
+  shock, SVB, October 2023, the 2025 tariff round) through the event-study machinery with the
+  v1 betas: raw move, the part the controls explain, net move at 5 and 20 days, beside the
+  standard trailing-beta net.
+
+The regressors are the controls' changes over the same window, so the test is of whether the
+sensitivities still hold, not of a forecast made before the window opened.
+
+## Findings
+
+| # | question | where | answer |
+|---|---|---|---|
+| 1 | Do gold and silver move after US midterms? | `reports/midterms.md` | Six midterms with data: gold +2.3% raw, +1.8% net over 20 days; silver +5.0% / +4.4%. One or two years drive the averages, so no reliable midterm effect. |
+| 2 | Do event categories explain returns beyond the controls (v1, 2000-2021)? | `reports/v1_fit.md` | No. Real yields, the dollar and the GPR index carry the model; cross-validation shrinks the category terms to zero in 6 of 8 fits, and the pooled or mechanical-list terms do no better. |
+| 3 | Does an event list support a trading rule in sample? | `reports/strategies_v1.md` | No rule beats gold's own drift after costs; the net move persists from 5 to 20 days but the tradable raw move does not. |
+| 4 | Does the frozen v1 hold up on 2022-2026, with no refit? | `reports/v1_out_of_sample.md` | The control betas do: v1 beats no-change on all four asset-horizon pairs (gold RMSE 2.34% vs 2.64% at 5 days, 4.28% vs 5.14% at 20), also with the five largest windows removed, calls direction right 65-77% of the time, and a refit on the test period moves no sensitivity by more than 1.5 SE. It misses a persistent upward drift (mean error about +1.1% per 20-day gold window, +1.5% silver). Event net moves with v1 betas: invasion/reserve freeze, SVB and October 2023 positive; the June 2022 rate shock and the 2025 tariffs negative. |
 
 ## Data caveats
 
