@@ -320,6 +320,51 @@ changed hands produces groups of four and two, and the 2010 silver move (+21% ne
 dominates the "changed hands" average, so no conclusion about control of the House
 survives the sample size.
 
+## The Monday routine
+
+`.github/workflows/log_week.yml` runs every Monday at 00:00 UTC (and on demand from the
+Actions tab). It rebuilds the data, runs `log_week.py` and `score_week.py`, and commits
+`data/forward_log.csv` and `reports/forward_scorecard.md`. Each run appends one row with:
+
+* `model_version`: which frozen coefficients were used, as named in `data/forward_model.txt`
+  (`v1`, the 2000-2021 fit in `data/v1_coefficients.csv`, or `v2-rolling`, the latest
+  five-year window in `data/v2_rolling_coefficients.csv`; the rolling-window rule in
+  `gold_events.rolling` decides). Only the control coefficients and intercept are used; the
+  event terms were shrunk to zero by cross-validation;
+* `gpr_level`, `gpr_change_week`: the latest daily GPR and its change from seven calendar
+  days earlier;
+* `market_prob_<id>`: the current probability of each question in
+  `data/tension_questions.yaml` (Polymarket via its public API; Metaculus via its API, with
+  `METACULUS_TOKEN` as a repository secret if anonymous calls are refused). A blank URL logs
+  as blank, and a question with `invert: true` logs 1 - P(Yes), for a market whose Yes is
+  the opposite of the question (q5 uses an "Israel x Iran ceasefire continues" market to
+  stand in for "strikes resume"; the YAML notes every difference between a question and its
+  market);
+* `pred_gold_5d`, `pred_silver_5d`: the frozen model's expected 5-day log return. Its input
+  is **last week's** control changes (real yield, log DXY, log VIX, GPR over the last five
+  trading days), i.e. it assumes those changes repeat. That is a placeholder for a real
+  forecast of the controls, and the `note` column says so on every row;
+* `my_tension_score` (0-10) and `my_prob_<id>`: blank, for you; `claude_tension_score` and
+  `claude_prob_<id>`: blank, for Claude to fill in when asked.
+
+Your part, each Monday:
+
+1. `git pull`, open `data/forward_log.csv`, fill in `my_tension_score` and `my_prob_<id>`
+   on the new row, commit.
+2. The five questions and their Polymarket markets are in `data/tension_questions.yaml`.
+   Keep the ids (`q1`..`q5`) fixed, since they are column names in the log. q5 has no exact
+   live market; replace its URL when a "strikes resume by March 2027" market appears.
+3. When a question resolves, set `resolved: true` and `outcome: 1` or `0` in the YAML, for
+   the question as worded (so for an inverted market, 1 means strikes resumed).
+
+`score_week.py` (also run by the workflow) fills `realised_gold_5d` and `realised_silver_5d`
+for rows whose week has passed (log return from the last close on or before the log date to
+five trading days later) and writes `reports/forward_scorecard.md`: direction hit rate, mean
+error and MAE of the frozen model against a no-change baseline, and the Brier score of three
+forecasters, you, Claude and the market, pooled over every logged probability on resolved
+questions. If a data source is down on a Monday, the row is still written with the
+prediction blank and the reason in `note`.
+
 ## `data/events.csv`
 
 Header only for now: `date, category, event, countries, severity, source`. Suggested
