@@ -13,7 +13,8 @@ pip install -e ".[dev]"
 python -m gold_events.data       # download + cache + align -> data/daily.parquet, reports/data_coverage.md
 python -m gold_events.midterms   # first analysis -> reports/midterms.md
 python -m gold_events.events     # measured severity -> columns added in place to data/events.csv
-python -m gold_events.model      # v1 fit on 2000-08-30..2021-12-31 -> reports/v1_fit.md
+python -m gold_events.mechanical # index-flagged events -> data/events_mechanical.csv, reports/events_mechanical.md
+python -m gold_events.model      # v1 fit + refit on 2000-08-30..2021-12-31 -> reports/v1_fit.md
 pytest                           # tests for the maths (event study, scoring, model)
 ```
 
@@ -28,17 +29,20 @@ gold_events/
   event_study.py   raw and net returns around a date (the maths)
   midterms.py      first analysis: every US midterm since 1994
   events.py        event list + measured severity from GPR, EPU and consumer sentiment
-  model.py         v1 regression: returns on controls + severity x category terms
+  mechanical.py    mechanical event list: days when GPR or EPU is in its top 5%, merged into runs
+  model.py         v1 regression: returns on controls + severity x event terms, and the refit
 data/
   events.csv       68 hand-curated events with hand and measured severity columns
+  events_mechanical.csv  202 index-flagged events 1990-2021, category left blank
   daily.parquet    aligned daily frame (built, not committed)
   cache/           raw downloads (built, not committed)
 reports/
   data_coverage.md what each source delivered, and the gaps
   midterms.md      the midterm tables and reading
-  v1_fit.md        v1 model coefficients, errors against baselines, reading
+  events_mechanical.md  mechanical list vs hand list: overlap, misses, largest unlisted spikes
+  v1_fit.md        v1 model coefficients, errors against baselines, refit comparison, readings
 tests/
-  test_event_study.py, test_events.py, test_model.py
+  test_event_study.py, test_events.py, test_mechanical.py, test_model.py
 ```
 
 ## Modules
@@ -124,13 +128,29 @@ Reads the hand columns of `data/events.csv` and writes the measured columns back
 * **GPR and EPU jump.** For each event, the mean of the index over days 0..4 minus the
   mean over days -5..-1, where "day" is a calendar day because both indices exist on
   every day, and day 0 is the event date itself (or the next available day).
-* **1-5 score.** The same before/after jump is computed for every day from 1990 to 2021,
-  and the event's jump is ranked against that distribution's quintiles. `severity_measured`
-  is the larger of the GPR and EPU scores.
+* **Severity.** The same before/after jump is computed for every day from 1990 to 2021 as
+  a reference distribution. `gpr_z` and `epu_z` are the event's jumps as z-scores against
+  it, and `severity_measured` is the larger of the two (continuous, negative when both
+  indices fell into the event). `gpr_score`, `epu_score` and `severity_quintile` are the
+  1-5 quintile version, kept for reference.
 * **Consumer sentiment.** Michigan sentiment in the calendar month after the event minus
-  the month before.
+  the month before, left blank when the month after is past December 2021 (the repository
+  stores nothing after 2021).
 * **Clustering flag.** `near_other_event` is true when another event's day 0 is within 20
   trading days; `nearest_event_days` gives the distance.
+
+### `gold_events.mechanical`
+
+A second event list that needs no judgement. Over trading days 1990-2021, a day is flagged
+when GPR or EPU exceeds its own 95th percentile; flagged days within 5 trading days of the
+previous flagged day are merged into one event dated at its first flagged day, keeping the
+peak of each index, which index triggered it, and `peak_z` (the larger peak as a z-score of
+daily levels) for ranking. `severity_measured` is the same jump z-score as the hand list so
+the two are comparable in the model. The report compares the two lists: overlap within 5
+trading days of a start, overlap anywhere inside a mechanical event's span, hand-list events
+the indices never flagged, and the ten largest mechanical events absent from the hand list.
+The merge rule turns long crises into single onset-dated events (the Iraq build-up runs from
+2002-12-18 to 2003-05-22), which is why the span-based overlap is reported too.
 
 ### `gold_events.model`
 
@@ -150,6 +170,12 @@ frame is truncated before anything is computed; tests check the cut).
   design is reported alongside.
 * **Baselines.** In-sample RMSE of no-change (predict zero) and controls-only OLS, on all
   windows and on event windows alone, for both severity versions.
+* **Refit.** The second half of the report repeats the exercise with the continuous
+  severity three ways (hand list by category, hand list pooled into one "any event x
+  severity" term, mechanical list pooled), compares cross-validated RMSE against the
+  controls-only baseline on all windows and on each list's event windows, reports the mean
+  out-of-fold abnormal return on each list's windows as a selection check, and refits the
+  hand pooled term without September 11, whose severity (z = 19) dominates the scale.
 
 ## Data caveats
 
@@ -169,11 +195,12 @@ frame is truncated before anything is computed; tests check the cut).
   estimated on it for 2002 and earlier are correspondingly weaker.
 * **Weekly series** (`fed_balance_sheet`, `bank_reserves`) are Wednesday values
   forward-filled; the coverage report marks these as not having a meaningful "missing" count.
-* **Measured severity is compressed.** Taking the larger of two quintile ranks against all
-  days gives 46 of the 68 events a 5, so `severity_measured` behaves almost like an on/off
-  indicator in the model.
-* **One post-2021 datum in `events.csv`.** `sentiment_after` for the 2021-12-09 event is
-  the January 2022 Michigan reading. It is not used by the model.
+* **Severity scales.** The quintile version (`severity_quintile`) is compressed: 46 of the
+  68 events score 5. The continuous version (`severity_measured`) is dominated by September
+  11 (z = 19, several times any other event), so a term using it leans on that one row;
+  winsorising or logging it is a v2 item.
+* **Nothing after 2021 is stored.** `sentiment_after` is blank where the month after the
+  event is past December 2021, and the model never reads data past 2021-12-31.
 
 ## First result: midterms
 
@@ -193,11 +220,13 @@ conventions: ISO dates, `countries` as a semicolon-separated list of ISO codes,
 
 ## Tests
 
-`tests/test_events.py` checks the before/after windows, the quintile scoring, weekend
-events and the clustering flag on planted jumps. `tests/test_model.py` checks that the
-design rows equal the event-study returns, that events land on the right row, that the
-sample end is a hard cut, that ridge at zero penalty equals OLS and at a huge penalty
-reduces to controls-only OLS, and the HAC covariance at lag 0.
+`tests/test_events.py` checks the before/after windows, the z-score and quintile scoring,
+weekend events and the clustering flag on planted jumps. `tests/test_mechanical.py` checks
+the per-index thresholds and the run merging on planted spikes. `tests/test_model.py` checks
+that the design rows equal the event-study returns, that events land on the right row (by
+category and pooled), that the sample end is a hard cut, that ridge at zero penalty equals
+OLS and at a huge penalty reduces to controls-only OLS, that out-of-fold residuals are real,
+and the HAC covariance at lag 0.
 
 `tests/test_event_study.py` builds synthetic prices where the asset is exactly
 beta times the controls plus known idiosyncratic shocks, and checks that: betas are

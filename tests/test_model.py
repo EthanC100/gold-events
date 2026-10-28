@@ -91,3 +91,27 @@ def test_hac_lag0_is_white_covariance():
     A = np.linalg.inv(X.T @ X)
     white = A @ (X * e[:, None]).T @ (X * e[:, None]) @ A
     assert V == pytest.approx(white)
+
+
+def test_pooled_design_sums_severity_at_day0():
+    df = make_frame()
+    events = make_events(df)
+    X = build_design(df, events, "gold", 5, "severity_measured", start=df.index[50], end=df.index[-1], mode="pooled")
+    assert list(X.columns) == ["y", "d_real_yield", "dlog_dxy", "dlog_vix", "d_gpr", "any_event"]
+    assert X.loc[df.index[100], "any_event"] == 5 and X.loc[df.index[300], "any_event"] == 5
+    assert (X["any_event"] != 0).sum() == 2
+    # two events on the same day 0 add up
+    twice = pd.concat([events, events.iloc[[0]]], ignore_index=True)
+    X2 = build_design(df, twice, "gold", 5, "severity_measured", start=df.index[50], end=df.index[-1], mode="pooled")
+    assert X2.loc[df.index[100], "any_event"] == 10
+
+
+def test_out_of_fold_residuals_are_not_in_sample_residuals():
+    df = make_frame()
+    events = make_events(df)
+    X = build_design(df, events, "gold", 5, "severity_hand", start=df.index[50], end=df.index[-1])
+    y = X.pop("y")
+    fit = ols_fit(X, y, lag=5)
+    assert fit.oof_resid.shape == fit.resid.shape
+    assert np.mean(fit.oof_resid ** 2) > np.mean(fit.resid ** 2)  # out-of-fold error exceeds in-sample error
+    assert fit.cv_mse[0.0] == pytest.approx(np.mean(fit.oof_resid ** 2))

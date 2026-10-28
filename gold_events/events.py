@@ -10,12 +10,18 @@ adds measured columns in place:
     is a calendar day and day 0 is the event date itself.
 ``epu_*``                                 same for the daily US Economic Policy
     Uncertainty index.
-``gpr_score / epu_score``                 the jump on a 1-5 scale: quintiles of
-    the same before/after jump computed on *every* day 1990-2021.
-``severity_measured``                     max(gpr_score, epu_score).
+``gpr_z / epu_z``                         the jump as a z-score against the same
+    before/after jump computed on *every* day 1990-2021.
+``gpr_score / epu_score``                 the jump on a 1-5 scale (quintiles of
+    the same reference distribution), kept for reference.
+``severity_measured``                     max(gpr_z, epu_z): continuous, can be
+    negative when both indices fell into the event.
+``severity_quintile``                     max(gpr_score, epu_score), the earlier
+    1-5 version, kept for reference.
 ``sentiment_before / sentiment_after / sentiment_change``
     Michigan consumer sentiment (UMCSENT) in the month before and the month
-    after the event, and the difference.
+    after the event, and the difference.  Blank when the month after is past
+    ``DATA_END``: nothing after 2021 is stored in the repository.
 ``near_other_event``                      True if another event's day 0 is within
     20 trading days; ``nearest_event_days`` is the distance (trading days).
 """
@@ -29,7 +35,8 @@ from gold_events.event_study import first_trading_day_on_or_after
 
 EVENTS_PATH = data.DATA_DIR / "events.csv"
 HAND_COLUMNS = ["date", "category", "event", "countries", "severity_hand", "source"]
-QUANTILE_START, QUANTILE_END = pd.Timestamp("1990-01-01"), pd.Timestamp("2021-12-31")
+REF_START, REF_END = pd.Timestamp("1990-01-01"), pd.Timestamp("2021-12-31")  # reference distribution
+DATA_END = pd.Period("2021-12", freq="M")  # no post-2021 data is written to the repository
 PRE_DAYS = POST_DAYS = 5
 NEAR_DAYS = 20
 
@@ -63,6 +70,24 @@ def quintile_score(x: float, edges: list[float]) -> float:
     return 1 + sum(x > e for e in edges)
 
 
+def jump_columns(dates: pd.Series, gpr: pd.Series, epu: pd.Series) -> pd.DataFrame:
+    """The GPR/EPU jump columns and both severities for a series of dates."""
+    out = pd.DataFrame(index=dates.index)
+    for name, series in (("gpr", gpr), ("epu", epu)):
+        jumps = jump_series(series)
+        ref = jumps.loc[REF_START:REF_END, "change"].dropna()
+        edges = quintile_edges(ref)
+        rows = dates.apply(lambda d: _at(jumps, d))
+        out[f"{name}_before"] = rows["before"].round(1).to_numpy()
+        out[f"{name}_after"] = rows["after"].round(1).to_numpy()
+        out[f"{name}_change"] = rows["change"].round(1).to_numpy()
+        out[f"{name}_z"] = ((rows["change"] - ref.mean()) / ref.std()).round(2).to_numpy()
+        out[f"{name}_score"] = [quintile_score(x, edges) for x in rows["change"]]
+    out["severity_measured"] = out[["gpr_z", "epu_z"]].max(axis=1)
+    out["severity_quintile"] = out[["gpr_score", "epu_score"]].max(axis=1)
+    return out
+
+
 def _at(jumps: pd.DataFrame, date: pd.Timestamp) -> pd.Series:
     """Row of ``jumps`` on ``date`` or the first available day after it."""
     pos = jumps.index.searchsorted(date)
@@ -75,21 +100,14 @@ def score_events(events: pd.DataFrame, gpr: pd.Series, epu: pd.Series, umcsent: 
                  calendar: pd.DatetimeIndex) -> pd.DataFrame:
     """Add the measured columns to a copy of ``events`` (hand columns untouched)."""
     ev = events[HAND_COLUMNS].copy()
-    for name, series in (("gpr", gpr), ("epu", epu)):
-        jumps = jump_series(series)
-        edges = quintile_edges(jumps.loc[QUANTILE_START:QUANTILE_END, "change"].dropna())
-        rows = ev["date"].apply(lambda d: _at(jumps, d))
-        ev[f"{name}_before"] = rows["before"].round(1).to_numpy()
-        ev[f"{name}_after"] = rows["after"].round(1).to_numpy()
-        ev[f"{name}_change"] = rows["change"].round(1).to_numpy()
-        ev[f"{name}_score"] = [quintile_score(x, edges) for x in rows["change"]]
-    ev["severity_measured"] = ev[["gpr_score", "epu_score"]].max(axis=1)
+    ev = pd.concat([ev, jump_columns(ev["date"], gpr, epu)], axis=1)
 
     monthly = umcsent.copy()
     monthly.index = monthly.index.to_period("M")
     months = ev["date"].dt.to_period("M")
     ev["sentiment_before"] = [monthly.get(m - 1, float("nan")) for m in months]
-    ev["sentiment_after"] = [monthly.get(m + 1, float("nan")) for m in months]
+    ev["sentiment_after"] = [monthly.get(m + 1, float("nan")) if m + 1 <= DATA_END else float("nan")
+                             for m in months]
     ev["sentiment_change"] = (ev["sentiment_after"] - ev["sentiment_before"]).round(1)
 
     day0 = [first_trading_day_on_or_after(calendar, d) for d in ev["date"]]
@@ -112,12 +130,12 @@ def main() -> None:
     scored = score_events(events, gpr, epu, umcsent, calendar)
     scored.to_csv(EVENTS_PATH, index=False, date_format="%Y-%m-%d")
     print(f"Scored {len(scored)} events -> {EVENTS_PATH}")
-    cols = ["date", "category", "severity_hand", "gpr_change", "gpr_score", "epu_change", "epu_score",
-            "severity_measured", "sentiment_change", "nearest_event_days", "near_other_event"]
+    cols = ["date", "category", "severity_hand", "gpr_change", "gpr_z", "epu_change", "epu_z",
+            "severity_measured", "severity_quintile", "sentiment_change", "nearest_event_days", "near_other_event"]
     with pd.option_context("display.width", 200, "display.max_rows", 200):
         print(scored[cols].to_string(index=False))
-    print("\nhand vs measured severity (rows = hand):")
-    print(pd.crosstab(scored.severity_hand, scored.severity_measured))
+    print("\nseverity_measured by severity_hand:")
+    print(scored.groupby("severity_hand").severity_measured.describe()[["count", "mean", "min", "50%", "max"]])
 
 
 if __name__ == "__main__":

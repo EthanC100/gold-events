@@ -1,69 +1,69 @@
-date,category,event,countries,severity_hand,source,gpr_before,gpr_after,gpr_change,gpr_score,epu_before,epu_after,epu_change,epu_score,severity_measured,sentiment_before,sentiment_after,sentiment_change,nearest_event_days,near_other_event
-1990-08-02,Military escalation,Iraq invades Kuwait,"Iraq, Kuwait, US",4,,108.9,197.0,88.1,5,70.7,132.8,62.1,5,5,88.2,72.8,-15.4,116,False
-1991-01-17,Military escalation,Gulf War air campaign begins,"US, Iraq",3,,398.3,448.4,50.1,5,169.9,122.1,-47.8,1,5,65.5,70.4,4.9,116,False
-1991-08-19,Election or leadership shock,Soviet coup attempt against Gorbachev,USSR,4,,64.4,164.6,100.2,5,46.4,229.2,182.9,5,5,82.9,83.0,0.1,90,False
-1991-12-26,Election or leadership shock,Soviet Union dissolved,"USSR, Russia",4,,98.5,96.3,-2.1,3,226.3,256.6,30.3,5,5,69.1,67.5,-1.6,90,False
-1992-09-16,Banking or financial stress,"Black Wednesday, sterling leaves the ERM",UK,3,,77.0,76.9,-0.1,3,107.4,178.3,70.9,5,5,76.1,73.3,-2.8,113,False
-1993-02-26,Terror attack,World Trade Center bombing,US,2,,85.8,87.6,1.8,3,155.6,143.8,-11.8,2,3,89.3,85.9,-3.4,113,False
-1994-02-04,Central bank policy shock,Fed surprise hike starts 1994 bond crash,US,3,,77.2,118.0,40.8,5,73.8,94.5,20.7,4,5,94.3,91.5,-2.8,220,False
-1994-12-20,Sovereign debt crisis,Mexican peso devaluation,"Mexico, US",3,,95.7,90.6,-5.1,3,90.4,90.1,-0.4,3,3,91.6,97.6,6.0,18,True
-1995-01-17,Pandemic or disaster,Kobe earthquake,Japan,2,,75.2,80.0,4.8,4,149.2,85.5,-63.7,1,4,95.1,95.1,0.0,18,True
-1995-04-19,Terror attack,Oklahoma City bombing,US,2,,105.4,136.9,31.5,5,63.2,48.4,-14.9,2,5,90.3,89.8,-0.5,64,False
-1997-07-02,Sovereign debt crisis,"Thai baht float, Asian crisis begins","Thailand, Asia",4,,34.3,41.9,7.6,4,150.6,74.1,-76.4,1,4,104.5,104.4,-0.1,81,False
-1997-10-27,Banking or financial stress,Hong Kong crash spreads to Wall Street,"Hong Kong, US",3,,57.0,67.8,10.8,4,85.7,148.4,62.6,5,5,106.0,107.2,1.2,81,False
-1998-05-11,Military escalation,"India nuclear tests, Pakistan follows","India, Pakistan",2,,58.6,154.1,95.4,5,46.7,54.4,7.7,4,5,108.7,105.6,-3.1,68,False
-1998-08-17,Sovereign debt crisis,Russia defaults on domestic debt,Russia,4,,70.7,117.0,46.3,5,87.9,111.5,23.6,4,5,105.2,100.9,-4.3,26,False
-1998-09-23,Banking or financial stress,LTCM rescue,US,3,,52.8,64.2,11.4,4,185.4,80.8,-104.6,1,4,104.4,97.4,-7.0,26,False
-1999-03-24,Military escalation,NATO bombing of Yugoslavia begins,"NATO, Serbia",2,,78.7,114.2,35.5,5,61.6,39.3,-22.2,2,5,108.1,104.6,-3.5,31,False
-1999-05-07,Reserve-currency and gold-system event,UK Treasury announces sale of half its gold,UK,3,,78.4,81.8,3.3,3,35.4,30.7,-4.7,3,3,104.6,107.3,2.7,31,False
-1999-09-27,Reserve-currency and gold-system event,Washington Agreement caps central-bank gold sales,Europe,4,,73.4,67.6,-5.8,2,82.7,57.9,-24.8,2,2,104.5,103.2,-1.3,98,False
-2001-01-03,Central bank policy shock,Fed surprise intermeeting cut,US,3,,46.6,49.9,3.3,3,229.3,111.5,-117.8,1,3,98.4,90.6,-7.8,173,False
-2001-09-11,Terror attack,September 11 attacks,US,5,,41.6,551.7,510.2,5,91.8,172.1,80.4,5,5,91.5,82.7,-8.8,15,True
-2001-10-08,Military escalation,US invasion of Afghanistan,"US, Afghanistan",3,,627.4,594.9,-32.5,1,395.5,238.0,-157.5,1,1,81.8,83.9,2.1,15,True
-2001-12-24,Sovereign debt crisis,Argentina defaults,Argentina,3,,215.0,242.9,27.9,5,129.5,114.7,-14.8,2,5,83.9,93.0,9.1,54,False
-2003-03-20,Military escalation,US invasion of Iraq,"US, Iraq",4,,385.0,442.4,57.4,5,355.0,187.1,-167.9,1,5,79.9,86.0,6.1,246,False
-2004-03-11,Terror attack,Madrid train bombings,Spain,2,,85.8,146.8,60.9,5,63.2,65.1,1.9,3,5,94.4,94.2,-0.2,246,False
-2005-07-07,Terror attack,London bombings,UK,2,,97.6,226.7,129.0,5,53.9,42.9,-10.9,2,5,96.0,89.1,-6.9,317,False
-2006-10-09,Military escalation,North Korea first nuclear test,North Korea,2,,96.5,165.1,68.6,5,36.2,37.2,1.0,3,5,85.4,92.1,6.7,209,False
-2007-08-09,Banking or financial stress,"BNP Paribas freezes funds, credit crunch begins","France, global",3,,98.1,76.3,-21.8,1,87.7,71.3,-16.3,2,2,90.4,83.4,-7.0,151,False
-2008-03-17,Banking or financial stress,Bear Stearns rescue,US,4,,64.8,68.1,3.3,3,86.3,217.1,130.8,5,5,70.8,62.6,-8.2,121,False
-2008-09-08,Banking or financial stress,Fannie Mae and Freddie Mac conservatorship,US,4,,101.0,91.3,-9.7,2,57.4,105.7,48.4,5,5,63.0,57.6,-5.4,5,True
-2008-09-15,Banking or financial stress,Lehman Brothers bankruptcy,"US, global",5,,86.8,97.5,10.7,4,88.2,244.7,156.5,5,5,63.0,57.6,-5.4,5,True
-2008-10-08,Central bank policy shock,Coordinated emergency rate cut by six central banks,Global,4,,74.6,69.7,-4.9,3,291.6,235.0,-56.6,1,3,70.3,55.3,-15.0,17,True
-2008-11-25,Central bank policy shock,Fed announces first QE,US,4,,64.4,124.1,59.8,5,344.2,175.1,-169.1,1,5,57.6,60.1,2.5,34,False
-2009-03-18,Central bank policy shock,Fed expands QE to Treasuries,US,3,,48.4,55.4,7.0,4,183.3,171.0,-12.3,2,4,56.3,65.1,8.8,76,False
-2010-05-03,Sovereign debt crisis,First Greek bailout agreed,"Greece, EU",3,,40.7,101.4,60.7,5,77.8,90.6,12.7,4,5,72.2,76.0,3.8,129,False
-2010-11-03,Central bank policy shock,QE2 announced,US,3,,96.0,68.0,-28.0,1,253.2,219.3,-33.9,1,1,67.7,74.5,6.8,69,False
-2011-02-11,Election or leadership shock,"Mubarak resigns, Arab Spring",Egypt,3,,71.8,71.9,0.0,3,106.4,147.0,40.7,5,5,74.2,67.5,-6.7,19,True
-2011-03-11,Pandemic or disaster,Japan earthquake and Fukushima,Japan,3,,138.3,112.6,-25.6,1,134.5,170.0,35.5,5,5,77.5,69.8,-7.7,6,True
-2011-03-21,Military escalation,NATO intervention in Libya,"Libya, NATO",2,,131.9,170.2,38.3,5,157.6,112.3,-45.4,1,5,77.5,69.8,-7.7,6,True
-2011-08-08,Sovereign debt crisis,S&P downgrades US after debt-ceiling standoff,US,4,,64.3,72.5,8.3,4,263.7,363.2,99.5,5,5,63.7,59.5,-4.2,97,False
-2012-07-26,Central bank policy shock,Draghi whatever it takes,Eurozone,4,,75.2,77.6,2.4,3,160.3,132.4,-27.9,1,3,73.2,74.3,1.1,34,False
-2012-09-13,Central bank policy shock,QE3 announced,US,3,,74.8,71.7,-3.1,3,113.5,157.0,43.6,5,5,74.3,82.6,8.3,34,False
-2013-03-18,Banking or financial stress,Cyprus deposit levy and bank closures,"Cyprus, EU",2,,76.7,91.4,14.7,4,102.0,130.6,28.7,5,5,77.6,76.4,-1.2,46,False
-2013-05-22,Central bank policy shock,Taper tantrum begins,US,4,,94.7,82.9,-11.8,2,69.7,76.5,6.8,3,3,76.4,84.1,7.7,46,False
-2014-03-18,Military escalation,Russia annexes Crimea,"Russia, Ukraine",4,,105.9,127.5,21.6,5,60.7,112.6,51.9,5,5,81.6,84.1,2.5,84,False
-2014-07-17,Sanctions and trade war,"MH17 shot down, sectoral sanctions on Russia","Russia, US, EU",3,,117.9,169.7,51.7,5,116.5,69.9,-46.6,1,5,82.5,82.5,0.0,84,False
-2015-01-15,Central bank policy shock,Swiss franc peg abandoned,Switzerland,3,,124.6,119.1,-5.5,2,90.4,84.4,-6.0,3,3,93.6,95.4,1.8,113,False
-2015-06-29,Sovereign debt crisis,"Greek capital controls, referendum called","Greece, EU",3,,97.1,114.2,17.1,5,60.4,75.4,15.0,4,5,90.7,93.1,2.4,30,False
-2015-08-11,Central bank policy shock,China surprise yuan devaluation,China,3,,92.4,85.5,-6.9,2,47.0,54.2,7.2,4,4,93.1,87.2,-5.9,30,False
-2016-01-04,Banking or financial stress,China market circuit-breaker crash,China,2,,124.7,177.3,52.6,5,97.6,61.8,-35.9,1,5,92.6,91.7,-0.9,100,False
-2016-06-24,Election or leadership shock,Brexit referendum result,"UK, EU",4,,104.5,73.3,-31.1,1,111.8,343.0,231.2,5,5,94.7,90.0,-4.7,28,False
-2016-08-04,Central bank policy shock,Bank of England post-Brexit cut and QE,UK,2,,91.8,96.3,4.5,4,75.6,75.6,0.0,3,4,90.0,91.2,1.2,28,False
-2016-11-09,Election or leadership shock,Trump wins US election,US,4,,67.7,64.7,-3.0,3,102.2,235.4,133.2,5,5,87.2,98.2,11.0,68,False
-2017-09-04,Military escalation,North Korea hydrogen bomb test,North Korea,3,,104.6,185.8,81.2,5,61.5,115.4,53.9,5,5,96.8,100.7,3.9,137,False
-2018-03-22,Sanctions and trade war,"US announces tariffs on China, trade war begins","US, China",3,,109.9,106.2,-3.8,3,85.1,65.7,-19.4,2,3,99.7,98.8,-0.9,32,False
-2018-05-08,Sanctions and trade war,US withdraws from Iran deal,"US, Iran",3,,86.3,181.3,95.0,5,98.0,85.9,-12.1,2,5,98.8,98.2,-0.6,32,False
-2018-12-19,Central bank policy shock,Fed hikes and signals more,US,2,,76.2,116.2,40.0,5,113.7,122.1,8.5,4,5,97.5,91.2,-6.3,153,False
-2019-07-31,Central bank policy shock,First Fed cut since 2008,US,2,,104.4,107.2,2.7,3,130.1,122.3,-7.8,3,3,98.2,89.8,-8.4,3,True
-2019-08-05,Sanctions and trade war,"Yuan breaks 7, US labels China manipulator","US, China",3,,107.2,146.2,39.0,5,122.3,89.0,-33.3,1,5,98.4,93.2,-5.2,3,True
-2019-09-16,Military escalation,Drone strike on Saudi Abqaiq facility,"Saudi Arabia, Iran",3,,73.9,166.3,92.4,5,103.9,100.4,-3.4,3,5,89.8,95.5,5.7,29,False
-2020-01-03,Military escalation,US kills Soleimani,"US, Iran",3,,121.6,235.1,113.5,5,155.5,149.3,-6.2,3,5,99.3,101.0,1.7,40,False
-2020-03-03,Central bank policy shock,Fed emergency 50bp cut,US,4,,73.9,92.5,18.7,5,166.7,140.6,-26.1,2,5,101.0,71.8,-29.2,6,True
-2020-03-11,Pandemic or disaster,WHO declares Covid-19 a pandemic,Global,5,,65.0,66.6,1.6,3,215.6,291.4,75.8,5,5,101.0,71.8,-29.2,3,True
-2020-03-16,Central bank policy shock,Fed to zero and unlimited QE,US,5,,66.6,73.6,7.0,4,291.4,461.3,169.8,5,5,101.0,71.8,-29.2,3,True
-2020-11-04,Election or leadership shock,"US election, result uncertain for days",US,3,,72.6,69.8,-2.8,3,297.9,386.6,88.7,5,5,81.8,80.7,-1.1,42,False
-2021-01-06,Election or leadership shock,US Capitol riot,US,2,,69.0,78.8,9.8,4,277.2,153.5,-123.7,1,4,80.7,76.8,-3.9,42,False
-2021-08-16,Military escalation,Kabul falls to the Taliban,"Afghanistan, US",2,,62.1,97.3,35.2,5,95.1,104.4,9.4,4,5,81.2,72.8,-8.4,56,False
-2021-11-03,Central bank policy shock,Fed announces taper,US,2,,71.9,69.6,-2.3,3,96.7,205.4,108.7,5,5,71.7,70.6,-1.1,25,False
-2021-12-09,Banking or financial stress,Evergrande declared in default,China,2,,125.7,110.4,-15.3,2,129.9,124.5,-5.4,3,3,67.4,67.2,-0.2,25,False
+date,category,event,countries,severity_hand,source,gpr_before,gpr_after,gpr_change,gpr_z,gpr_score,epu_before,epu_after,epu_change,epu_z,epu_score,severity_measured,severity_quintile,sentiment_before,sentiment_after,sentiment_change,nearest_event_days,near_other_event
+1990-08-02,Military escalation,Iraq invades Kuwait,"Iraq, Kuwait, US",4,,108.9,197.0,88.1,3.31,5,70.7,132.8,62.1,1.56,5,3.31,5,88.2,72.8,-15.4,116,False
+1991-01-17,Military escalation,Gulf War air campaign begins,"US, Iraq",3,,398.3,448.4,50.1,1.88,5,169.9,122.1,-47.8,-1.2,1,1.88,5,65.5,70.4,4.9,116,False
+1991-08-19,Election or leadership shock,Soviet coup attempt against Gorbachev,USSR,4,,64.4,164.6,100.2,3.77,5,46.4,229.2,182.9,4.6,5,4.6,5,82.9,83.0,0.1,90,False
+1991-12-26,Election or leadership shock,Soviet Union dissolved,"USSR, Russia",4,,98.5,96.3,-2.1,-0.08,3,226.3,256.6,30.3,0.76,5,0.76,5,69.1,67.5,-1.6,90,False
+1992-09-16,Banking or financial stress,"Black Wednesday, sterling leaves the ERM",UK,3,,77.0,76.9,-0.1,-0.0,3,107.4,178.3,70.9,1.78,5,1.78,5,76.1,73.3,-2.8,113,False
+1993-02-26,Terror attack,World Trade Center bombing,US,2,,85.8,87.6,1.8,0.07,3,155.6,143.8,-11.8,-0.3,2,0.07,3,89.3,85.9,-3.4,113,False
+1994-02-04,Central bank policy shock,Fed surprise hike starts 1994 bond crash,US,3,,77.2,118.0,40.8,1.53,5,73.8,94.5,20.7,0.52,4,1.53,5,94.3,91.5,-2.8,220,False
+1994-12-20,Sovereign debt crisis,Mexican peso devaluation,"Mexico, US",3,,95.7,90.6,-5.1,-0.19,3,90.4,90.1,-0.4,-0.01,3,-0.01,3,91.6,97.6,6.0,18,True
+1995-01-17,Pandemic or disaster,Kobe earthquake,Japan,2,,75.2,80.0,4.8,0.18,4,149.2,85.5,-63.7,-1.6,1,0.18,4,95.1,95.1,0.0,18,True
+1995-04-19,Terror attack,Oklahoma City bombing,US,2,,105.4,136.9,31.5,1.19,5,63.2,48.4,-14.9,-0.37,2,1.19,5,90.3,89.8,-0.5,64,False
+1997-07-02,Sovereign debt crisis,"Thai baht float, Asian crisis begins","Thailand, Asia",4,,34.3,41.9,7.6,0.29,4,150.6,74.1,-76.4,-1.92,1,0.29,4,104.5,104.4,-0.1,81,False
+1997-10-27,Banking or financial stress,Hong Kong crash spreads to Wall Street,"Hong Kong, US",3,,57.0,67.8,10.8,0.41,4,85.7,148.4,62.6,1.58,5,1.58,5,106.0,107.2,1.2,81,False
+1998-05-11,Military escalation,"India nuclear tests, Pakistan follows","India, Pakistan",2,,58.6,154.1,95.4,3.59,5,46.7,54.4,7.7,0.19,4,3.59,5,108.7,105.6,-3.1,68,False
+1998-08-17,Sovereign debt crisis,Russia defaults on domestic debt,Russia,4,,70.7,117.0,46.3,1.74,5,87.9,111.5,23.6,0.59,4,1.74,5,105.2,100.9,-4.3,26,False
+1998-09-23,Banking or financial stress,LTCM rescue,US,3,,52.8,64.2,11.4,0.43,4,185.4,80.8,-104.6,-2.63,1,0.43,4,104.4,97.4,-7.0,26,False
+1999-03-24,Military escalation,NATO bombing of Yugoslavia begins,"NATO, Serbia",2,,78.7,114.2,35.5,1.34,5,61.6,39.3,-22.2,-0.56,2,1.34,5,108.1,104.6,-3.5,31,False
+1999-05-07,Reserve-currency and gold-system event,UK Treasury announces sale of half its gold,UK,3,,78.4,81.8,3.3,0.13,3,35.4,30.7,-4.7,-0.12,3,0.13,3,104.6,107.3,2.7,31,False
+1999-09-27,Reserve-currency and gold-system event,Washington Agreement caps central-bank gold sales,Europe,4,,73.4,67.6,-5.8,-0.22,2,82.7,57.9,-24.8,-0.62,2,-0.22,2,104.5,103.2,-1.3,98,False
+2001-01-03,Central bank policy shock,Fed surprise intermeeting cut,US,3,,46.6,49.9,3.3,0.12,3,229.3,111.5,-117.8,-2.96,1,0.12,3,98.4,90.6,-7.8,173,False
+2001-09-11,Terror attack,September 11 attacks,US,5,,41.6,551.7,510.2,19.18,5,91.8,172.1,80.4,2.02,5,19.18,5,91.5,82.7,-8.8,15,True
+2001-10-08,Military escalation,US invasion of Afghanistan,"US, Afghanistan",3,,627.4,594.9,-32.5,-1.22,1,395.5,238.0,-157.5,-3.96,1,-1.22,1,81.8,83.9,2.1,15,True
+2001-12-24,Sovereign debt crisis,Argentina defaults,Argentina,3,,215.0,242.9,27.9,1.05,5,129.5,114.7,-14.8,-0.37,2,1.05,5,83.9,93.0,9.1,54,False
+2003-03-20,Military escalation,US invasion of Iraq,"US, Iraq",4,,385.0,442.4,57.4,2.16,5,355.0,187.1,-167.9,-4.23,1,2.16,5,79.9,86.0,6.1,246,False
+2004-03-11,Terror attack,Madrid train bombings,Spain,2,,85.8,146.8,60.9,2.29,5,63.2,65.1,1.9,0.05,3,2.29,5,94.4,94.2,-0.2,246,False
+2005-07-07,Terror attack,London bombings,UK,2,,97.6,226.7,129.0,4.85,5,53.9,42.9,-10.9,-0.28,2,4.85,5,96.0,89.1,-6.9,317,False
+2006-10-09,Military escalation,North Korea first nuclear test,North Korea,2,,96.5,165.1,68.6,2.58,5,36.2,37.2,1.0,0.02,3,2.58,5,85.4,92.1,6.7,209,False
+2007-08-09,Banking or financial stress,"BNP Paribas freezes funds, credit crunch begins","France, global",3,,98.1,76.3,-21.8,-0.82,1,87.7,71.3,-16.3,-0.41,2,-0.41,2,90.4,83.4,-7.0,151,False
+2008-03-17,Banking or financial stress,Bear Stearns rescue,US,4,,64.8,68.1,3.3,0.13,3,86.3,217.1,130.8,3.29,5,3.29,5,70.8,62.6,-8.2,121,False
+2008-09-08,Banking or financial stress,Fannie Mae and Freddie Mac conservatorship,US,4,,101.0,91.3,-9.7,-0.36,2,57.4,105.7,48.4,1.22,5,1.22,5,63.0,57.6,-5.4,5,True
+2008-09-15,Banking or financial stress,Lehman Brothers bankruptcy,"US, global",5,,86.8,97.5,10.7,0.4,4,88.2,244.7,156.5,3.94,5,3.94,5,63.0,57.6,-5.4,5,True
+2008-10-08,Central bank policy shock,Coordinated emergency rate cut by six central banks,Global,4,,74.6,69.7,-4.9,-0.18,3,291.6,235.0,-56.6,-1.42,1,-0.18,3,70.3,55.3,-15.0,17,True
+2008-11-25,Central bank policy shock,Fed announces first QE,US,4,,64.4,124.1,59.8,2.25,5,344.2,175.1,-169.1,-4.26,1,2.25,5,57.6,60.1,2.5,34,False
+2009-03-18,Central bank policy shock,Fed expands QE to Treasuries,US,3,,48.4,55.4,7.0,0.26,4,183.3,171.0,-12.3,-0.31,2,0.26,4,56.3,65.1,8.8,76,False
+2010-05-03,Sovereign debt crisis,First Greek bailout agreed,"Greece, EU",3,,40.7,101.4,60.7,2.28,5,77.8,90.6,12.7,0.32,4,2.28,5,72.2,76.0,3.8,129,False
+2010-11-03,Central bank policy shock,QE2 announced,US,3,,96.0,68.0,-28.0,-1.05,1,253.2,219.3,-33.9,-0.85,1,-0.85,1,67.7,74.5,6.8,69,False
+2011-02-11,Election or leadership shock,"Mubarak resigns, Arab Spring",Egypt,3,,71.8,71.9,0.0,0.0,3,106.4,147.0,40.7,1.02,5,1.02,5,74.2,67.5,-6.7,19,True
+2011-03-11,Pandemic or disaster,Japan earthquake and Fukushima,Japan,3,,138.3,112.6,-25.6,-0.96,1,134.5,170.0,35.5,0.89,5,0.89,5,77.5,69.8,-7.7,6,True
+2011-03-21,Military escalation,NATO intervention in Libya,"Libya, NATO",2,,131.9,170.2,38.3,1.44,5,157.6,112.3,-45.4,-1.14,1,1.44,5,77.5,69.8,-7.7,6,True
+2011-08-08,Sovereign debt crisis,S&P downgrades US after debt-ceiling standoff,US,4,,64.3,72.5,8.3,0.31,4,263.7,363.2,99.5,2.5,5,2.5,5,63.7,59.5,-4.2,97,False
+2012-07-26,Central bank policy shock,Draghi whatever it takes,Eurozone,4,,75.2,77.6,2.4,0.09,3,160.3,132.4,-27.9,-0.7,1,0.09,3,73.2,74.3,1.1,34,False
+2012-09-13,Central bank policy shock,QE3 announced,US,3,,74.8,71.7,-3.1,-0.12,3,113.5,157.0,43.6,1.1,5,1.1,5,74.3,82.6,8.3,34,False
+2013-03-18,Banking or financial stress,Cyprus deposit levy and bank closures,"Cyprus, EU",2,,76.7,91.4,14.7,0.55,4,102.0,130.6,28.7,0.72,5,0.72,5,77.6,76.4,-1.2,46,False
+2013-05-22,Central bank policy shock,Taper tantrum begins,US,4,,94.7,82.9,-11.8,-0.44,2,69.7,76.5,6.8,0.17,3,0.17,3,76.4,84.1,7.7,46,False
+2014-03-18,Military escalation,Russia annexes Crimea,"Russia, Ukraine",4,,105.9,127.5,21.6,0.81,5,60.7,112.6,51.9,1.31,5,1.31,5,81.6,84.1,2.5,84,False
+2014-07-17,Sanctions and trade war,"MH17 shot down, sectoral sanctions on Russia","Russia, US, EU",3,,117.9,169.7,51.7,1.95,5,116.5,69.9,-46.6,-1.17,1,1.95,5,82.5,82.5,0.0,84,False
+2015-01-15,Central bank policy shock,Swiss franc peg abandoned,Switzerland,3,,124.6,119.1,-5.5,-0.21,2,90.4,84.4,-6.0,-0.15,3,-0.15,3,93.6,95.4,1.8,113,False
+2015-06-29,Sovereign debt crisis,"Greek capital controls, referendum called","Greece, EU",3,,97.1,114.2,17.1,0.64,5,60.4,75.4,15.0,0.38,4,0.64,5,90.7,93.1,2.4,30,False
+2015-08-11,Central bank policy shock,China surprise yuan devaluation,China,3,,92.4,85.5,-6.9,-0.26,2,47.0,54.2,7.2,0.18,4,0.18,4,93.1,87.2,-5.9,30,False
+2016-01-04,Banking or financial stress,China market circuit-breaker crash,China,2,,124.7,177.3,52.6,1.98,5,97.6,61.8,-35.9,-0.9,1,1.98,5,92.6,91.7,-0.9,100,False
+2016-06-24,Election or leadership shock,Brexit referendum result,"UK, EU",4,,104.5,73.3,-31.1,-1.17,1,111.8,343.0,231.2,5.82,5,5.82,5,94.7,90.0,-4.7,28,False
+2016-08-04,Central bank policy shock,Bank of England post-Brexit cut and QE,UK,2,,91.8,96.3,4.5,0.17,4,75.6,75.6,0.0,0.0,3,0.17,4,90.0,91.2,1.2,28,False
+2016-11-09,Election or leadership shock,Trump wins US election,US,4,,67.7,64.7,-3.0,-0.11,3,102.2,235.4,133.2,3.35,5,3.35,5,87.2,98.2,11.0,68,False
+2017-09-04,Military escalation,North Korea hydrogen bomb test,North Korea,3,,104.6,185.8,81.2,3.06,5,61.5,115.4,53.9,1.36,5,3.06,5,96.8,100.7,3.9,137,False
+2018-03-22,Sanctions and trade war,"US announces tariffs on China, trade war begins","US, China",3,,109.9,106.2,-3.8,-0.14,3,85.1,65.7,-19.4,-0.49,2,-0.14,3,99.7,98.8,-0.9,32,False
+2018-05-08,Sanctions and trade war,US withdraws from Iran deal,"US, Iran",3,,86.3,181.3,95.0,3.57,5,98.0,85.9,-12.1,-0.3,2,3.57,5,98.8,98.2,-0.6,32,False
+2018-12-19,Central bank policy shock,Fed hikes and signals more,US,2,,76.2,116.2,40.0,1.5,5,113.7,122.1,8.5,0.21,4,1.5,5,97.5,91.2,-6.3,153,False
+2019-07-31,Central bank policy shock,First Fed cut since 2008,US,2,,104.4,107.2,2.7,0.1,3,130.1,122.3,-7.8,-0.2,3,0.1,3,98.2,89.8,-8.4,3,True
+2019-08-05,Sanctions and trade war,"Yuan breaks 7, US labels China manipulator","US, China",3,,107.2,146.2,39.0,1.47,5,122.3,89.0,-33.3,-0.84,1,1.47,5,98.4,93.2,-5.2,3,True
+2019-09-16,Military escalation,Drone strike on Saudi Abqaiq facility,"Saudi Arabia, Iran",3,,73.9,166.3,92.4,3.48,5,103.9,100.4,-3.4,-0.09,3,3.48,5,89.8,95.5,5.7,29,False
+2020-01-03,Military escalation,US kills Soleimani,"US, Iran",3,,121.6,235.1,113.5,4.27,5,155.5,149.3,-6.2,-0.15,3,4.27,5,99.3,101.0,1.7,40,False
+2020-03-03,Central bank policy shock,Fed emergency 50bp cut,US,4,,73.9,92.5,18.7,0.7,5,166.7,140.6,-26.1,-0.66,2,0.7,5,101.0,71.8,-29.2,6,True
+2020-03-11,Pandemic or disaster,WHO declares Covid-19 a pandemic,Global,5,,65.0,66.6,1.6,0.06,3,215.6,291.4,75.8,1.91,5,1.91,5,101.0,71.8,-29.2,3,True
+2020-03-16,Central bank policy shock,Fed to zero and unlimited QE,US,5,,66.6,73.6,7.0,0.27,4,291.4,461.3,169.8,4.28,5,4.28,5,101.0,71.8,-29.2,3,True
+2020-11-04,Election or leadership shock,"US election, result uncertain for days",US,3,,72.6,69.8,-2.8,-0.1,3,297.9,386.6,88.7,2.23,5,2.23,5,81.8,80.7,-1.1,42,False
+2021-01-06,Election or leadership shock,US Capitol riot,US,2,,69.0,78.8,9.8,0.37,4,277.2,153.5,-123.7,-3.11,1,0.37,4,80.7,76.8,-3.9,42,False
+2021-08-16,Military escalation,Kabul falls to the Taliban,"Afghanistan, US",2,,62.1,97.3,35.2,1.32,5,95.1,104.4,9.4,0.24,4,1.32,5,81.2,72.8,-8.4,56,False
+2021-11-03,Central bank policy shock,Fed announces taper,US,2,,71.9,69.6,-2.3,-0.09,3,96.7,205.4,108.7,2.74,5,2.74,5,71.7,70.6,-1.1,25,False
+2021-12-09,Banking or financial stress,Evergrande declared in default,China,2,,125.7,110.4,-15.3,-0.58,2,129.9,124.5,-5.4,-0.14,3,-0.14,3,67.4,,,25,False

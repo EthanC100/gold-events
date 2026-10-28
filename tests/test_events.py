@@ -44,7 +44,8 @@ def test_score_events_end_to_end():
         "severity_hand": [3, 2, 4], "source": ["", "", ""],
     })
     out = score_events(events, gpr, epu, umcsent, calendar)
-    assert out.loc[0, "gpr_score"] == 5 and out.loc[0, "severity_measured"] == 5
+    assert out.loc[0, "gpr_score"] == 5 and out.loc[0, "severity_quintile"] == 5
+    assert out.loc[0, "gpr_z"] > 3 and out.loc[0, "severity_measured"] == max(out.loc[0, "gpr_z"], out.loc[0, "epu_z"])
     assert out.loc[2, "epu_score"] == 5  # Sunday event: uses the next available index day (Monday)
     assert out.loc[1, "gpr_score"] == 1  # the jump is in its "before" window, so change is very negative
     # sentiment: month after minus month before = 2 (series rises by 1 per month)
