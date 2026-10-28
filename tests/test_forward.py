@@ -150,3 +150,14 @@ def test_model_version_pointer_selects_coefficients(tmp_path, monkeypatch):
     assert f["version"] == "v2-rolling" and f["assets"]["gold"]["intercept"] == pytest.approx(0.004)
     pointer.write_text("nonsense\n")
     assert fw.model_version() == "v1"                      # unknown value falls back to v1
+
+
+def test_fetch_probabilities_inverts_and_tolerates_failures(monkeypatch):
+    monkeypatch.setitem(fw.FETCHERS, "polymarket", lambda url: 0.3 if "ok" in url else (_ for _ in ()).throw(RuntimeError("down")))
+    qs = [{"id": "a", "source": "polymarket", "url": "https://polymarket.com/event/ok"},
+          {"id": "b", "source": "polymarket", "url": "https://polymarket.com/event/ok", "invert": True},
+          {"id": "c", "source": "polymarket", "url": "https://polymarket.com/event/bad"},
+          {"id": "d", "source": "polymarket", "url": ""}]
+    out = fw.fetch_probabilities(qs)
+    assert out["a"] == pytest.approx(0.3) and out["b"] == pytest.approx(0.7)
+    assert np.isnan(out["c"]) and np.isnan(out["d"])

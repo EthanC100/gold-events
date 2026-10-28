@@ -102,7 +102,11 @@ FETCHERS = {"polymarket": polymarket_probability, "metaculus": metaculus_probabi
 
 
 def fetch_probabilities(questions: list[dict]) -> dict[str, float]:
-    """id -> probability; NaN when the url is blank or the fetch fails (logged, never fatal)."""
+    """id -> probability of the question as worded; NaN when the url is blank or the fetch fails.
+
+    A question with ``invert: true`` logs 1 - P(Yes), for markets whose Yes is the
+    opposite of the question (a "ceasefire continues" market standing in for "strikes resume").
+    """
     out = {}
     for q in questions:
         url = (q.get("url") or "").strip()
@@ -110,7 +114,8 @@ def fetch_probabilities(questions: list[dict]) -> dict[str, float]:
             out[q["id"]] = float("nan")
             continue
         try:
-            out[q["id"]] = FETCHERS[q["source"]](url)
+            p = FETCHERS[q["source"]](url)
+            out[q["id"]] = 1.0 - p if q.get("invert") else p
         except Exception as exc:
             log.warning("%s: could not fetch %s: %s", q["id"], url, exc)
             out[q["id"]] = float("nan")
