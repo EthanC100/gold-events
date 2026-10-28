@@ -476,10 +476,10 @@ def refit(df: pd.DataFrame, hand: pd.DataFrame, mech: pd.DataFrame) -> dict[tupl
     out = {}
     for asset in ASSETS:
         for h in HORIZONS:
-            Xa = build_design(df, hand, asset, h, "severity_measured", mode="category")
-            Xb = build_design(df, hand, asset, h, "severity_measured", mode="pooled")
-            Xc = build_design(df, mech, asset, h, "severity_measured", mode="pooled")
-            Xd = build_design(df, hand[hand.date != EX_EVENT], asset, h, "severity_measured", mode="pooled")
+            Xa = build_design(df, hand, asset, h, "severity_capped", mode="category")
+            Xb = build_design(df, hand, asset, h, "severity_capped", mode="pooled")
+            Xc = build_design(df, mech, asset, h, "severity_capped", mode="pooled")
+            Xd = build_design(df, hand[hand.date != EX_EVENT], asset, h, "severity_capped", mode="pooled")
             assert Xa.index.equals(Xb.index) and Xa.index.equals(Xc.index) and Xa.index.equals(Xd.index)
             y = Xa["y"]
             hand_rows = (Xb["any_event"] != 0).to_numpy()
@@ -515,9 +515,9 @@ def refit_report(res: dict, hand: pd.DataFrame, mech: pd.DataFrame) -> str:
         "# Refit: continuous severity, pooled event term, mechanical list",
         "",
         "Same windows, controls, sample (2000-08-30 to 2021-12-31), ridge and blocked 5-fold CV as above.",
-        "Severity is now the continuous measured score: the larger of the GPR and EPU 5-day jumps, each as a",
-        "z-score against all daily jumps 1990-2021. Three event designs are compared with the controls-only",
-        "baseline:",
+        "Severity is now the continuous measured score, capped: the larger of the GPR and EPU 5-day jumps, each as",
+        "a z-score against all daily jumps 1990-2021, winsorised at z = 3 (`severity_capped`). Three event designs",
+        "are compared with the controls-only baseline:",
         "",
         "1. hand list, one severity x indicator term per category;",
         "2. hand list, a single `any_event` = severity x 1[any hand-list event has its day 0 at t];",
@@ -525,11 +525,13 @@ def refit_report(res: dict, hand: pd.DataFrame, mech: pd.DataFrame) -> str:
         "   runs), the same single pooled term with the same jump-based severity.",
         "",
         "A fourth row, the hand list's pooled term with September 11 removed, is a robustness check: that event's",
-        "severity (z = 19) is several times any other, so a pooled term can be mostly a September 11 dummy.",
+        "uncapped severity (z = 19) was several times any other; the cap limits it to 3, the same as the next",
+        "largest events, but it remains the one event everyone would name first.",
         "",
-        f"In sample: {len(hand_in)} hand-list events ({int((hand_in.severity_measured < 0).sum())} with negative "
-        f"severity, i.e. both indices fell into the event) and {len(mech_in)} mechanical events "
-        f"({int((mech_in.severity_measured < 0).sum())} negative). Severity is used as given, so a negative-severity "
+        f"In sample: {len(hand_in)} hand-list events ({int((hand_in.severity_capped < 0).sum())} with negative "
+        f"severity, i.e. both indices fell into the event; {int((hand_in.severity_measured > 3).sum())} capped at 3) "
+        f"and {len(mech_in)} mechanical events ({int((mech_in.severity_capped < 0).sum())} negative; "
+        f"{int((mech_in.severity_measured > 3).sum())} capped). Severity is used as given, so a negative-severity "
         "event enters with its sign flipped.",
         "",
         "*CV RMSE* is the root mean squared out-of-fold residual from the blocked cross-validation at the chosen",
@@ -667,10 +669,10 @@ def refit_reading(res: dict) -> str:
         f"indices fell into them.",
         "**Verdict for v1.** With real yields, the dollar, the VIX and the GPR index in the regression, neither the "
         "hand-picked events nor the mechanically flagged ones add a detectable, out-of-sample-stable effect on gold or "
-        "silver at 5 or 20 days, pooled or by category, with hand, quintile or continuous severity. The continuous "
-        "severity is dominated by September 11 and should be winsorised or logged before v2; the mechanical list's "
-        "merge rule turns long crises into single onset-dated events (the Iraq build-up runs from 2002-12-18 to "
-        "2003-05-22), which is the right unit for some questions and the wrong one for an invasion-day study.",
+        "silver at 5 or 20 days, pooled or by category, with hand, quintile or capped continuous severity. The "
+        "mechanical list's merge rule turns long crises into single onset-dated events (the Iraq build-up runs from "
+        "2002-12-18 to 2003-05-22), which is the right unit for some questions and the wrong one for an invasion-day "
+        "study.",
     ]
     return "\n\n".join(parts)
 

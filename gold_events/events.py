@@ -16,6 +16,8 @@ adds measured columns in place:
     the same reference distribution), kept for reference.
 ``severity_measured``                     max(gpr_z, epu_z): continuous, can be
     negative when both indices fell into the event.
+``severity_capped``                       severity_measured winsorised at z = 3.
+    This is the severity the model uses.
 ``severity_quintile``                     max(gpr_score, epu_score), the earlier
     1-5 version, kept for reference.
 ``sentiment_before / sentiment_after / sentiment_change``
@@ -36,6 +38,7 @@ from gold_events.event_study import first_trading_day_on_or_after
 EVENTS_PATH = data.DATA_DIR / "events.csv"
 HAND_COLUMNS = ["date", "category", "event", "countries", "severity_hand", "source"]
 REF_START, REF_END = pd.Timestamp("1990-01-01"), pd.Timestamp("2021-12-31")  # reference distribution
+SEVERITY_CAP = 3.0  # winsorise the continuous severity at this z-score
 DATA_END = pd.Period("2021-12", freq="M")  # no post-2021 data is written to the repository
 PRE_DAYS = POST_DAYS = 5
 NEAR_DAYS = 20
@@ -84,6 +87,7 @@ def jump_columns(dates: pd.Series, gpr: pd.Series, epu: pd.Series) -> pd.DataFra
         out[f"{name}_z"] = ((rows["change"] - ref.mean()) / ref.std()).round(2).to_numpy()
         out[f"{name}_score"] = [quintile_score(x, edges) for x in rows["change"]]
     out["severity_measured"] = out[["gpr_z", "epu_z"]].max(axis=1)
+    out["severity_capped"] = out["severity_measured"].clip(upper=SEVERITY_CAP)
     out["severity_quintile"] = out[["gpr_score", "epu_score"]].max(axis=1)
     return out
 
@@ -131,7 +135,8 @@ def main() -> None:
     scored.to_csv(EVENTS_PATH, index=False, date_format="%Y-%m-%d")
     print(f"Scored {len(scored)} events -> {EVENTS_PATH}")
     cols = ["date", "category", "severity_hand", "gpr_change", "gpr_z", "epu_change", "epu_z",
-            "severity_measured", "severity_quintile", "sentiment_change", "nearest_event_days", "near_other_event"]
+            "severity_measured", "severity_capped", "severity_quintile", "sentiment_change", "nearest_event_days",
+            "near_other_event"]
     with pd.option_context("display.width", 200, "display.max_rows", 200):
         print(scored[cols].to_string(index=False))
     print("\nseverity_measured by severity_hand:")

@@ -75,6 +75,7 @@ def build(frame: pd.DataFrame, hand: pd.DataFrame, gpr_daily: pd.Series, epu_dai
     jumps = jump_columns(mech["date"], gpr_daily, epu_daily)
     mech["gpr_z"], mech["epu_z"] = jumps["gpr_z"], jumps["epu_z"]
     mech["severity_measured"] = jumps["severity_measured"]
+    mech["severity_capped"] = jumps["severity_capped"]
 
     # distance to the nearest hand-list event (trading days), both directions
     cal = f.index

@@ -15,6 +15,7 @@ python -m gold_events.midterms   # first analysis -> reports/midterms.md
 python -m gold_events.events     # measured severity -> columns added in place to data/events.csv
 python -m gold_events.mechanical # index-flagged events -> data/events_mechanical.csv, reports/events_mechanical.md
 python -m gold_events.model      # v1 fit + refit on 2000-08-30..2021-12-31 -> reports/v1_fit.md
+python -m gold_events.strategies # retention (H3) and four trading rules, in sample -> reports/strategies_v1.md
 pytest                           # tests for the maths (event study, scoring, model)
 ```
 
@@ -31,6 +32,7 @@ gold_events/
   events.py        event list + measured severity from GPR, EPU and consumer sentiment
   mechanical.py    mechanical event list: days when GPR or EPU is in its top 5%, merged into runs
   model.py         v1 regression: returns on controls + severity x event terms, and the refit
+  strategies.py    retention of net moves and four trading rules on both lists, with benchmarks
 data/
   events.csv       68 hand-curated events with hand and measured severity columns
   events_mechanical.csv  202 index-flagged events 1990-2021, category left blank
@@ -41,8 +43,9 @@ reports/
   midterms.md      the midterm tables and reading
   events_mechanical.md  mechanical list vs hand list: overlap, misses, largest unlisted spikes
   v1_fit.md        v1 model coefficients, errors against baselines, refit comparison, readings
+  strategies_v1.md retention stats, rule-by-rule metrics, year stability, verdicts
 tests/
-  test_event_study.py, test_events.py, test_mechanical.py, test_model.py
+  test_event_study.py, test_events.py, test_mechanical.py, test_model.py, test_strategies.py
 ```
 
 ## Modules
@@ -131,8 +134,9 @@ Reads the hand columns of `data/events.csv` and writes the measured columns back
 * **Severity.** The same before/after jump is computed for every day from 1990 to 2021 as
   a reference distribution. `gpr_z` and `epu_z` are the event's jumps as z-scores against
   it, and `severity_measured` is the larger of the two (continuous, negative when both
-  indices fell into the event). `gpr_score`, `epu_score` and `severity_quintile` are the
-  1-5 quintile version, kept for reference.
+  indices fell into the event). `severity_capped` winsorises it at z = 3 and is the version
+  the model uses. `gpr_score`, `epu_score` and `severity_quintile` are the 1-5 quintile
+  version, kept for reference.
 * **Consumer sentiment.** Michigan sentiment in the calendar month after the event minus
   the month before, left blank when the month after is past December 2021 (the repository
   stores nothing after 2021).
@@ -152,6 +156,26 @@ the indices never flagged, and the ten largest mechanical events absent from the
 The merge rule turns long crises into single onset-dated events (the Iraq build-up runs from
 2002-12-18 to 2003-05-22), which is why the span-based overlap is reported too.
 
+### `gold_events.strategies`
+
+An in-sample strategy test on 2000-08-30 to 2021-12-31, run on both event lists.
+
+* **Retention (H3).** For events whose net 5-day gold (or silver) move exceeded +1% or fell
+  below -1%, the ratio of the net 20-day move to the net 5-day move: distribution, mean,
+  share retaining at least half, and the metal's raw return from day 4 to day 19 on the same
+  events (what a trade would actually earn).
+* **Rules.** (a) buy if the net 5-day move was above +1%; (b) sell if below -1%; (c) buy
+  after any event; (d) a tension rule independent of the lists: buy at the close of a week
+  whose mean GPR rose by more than one standard deviation of weekly changes, hold 20 trading
+  days. Rules a-c enter at the close that ends the 5-day window (day 4) and exit at the
+  close that ends the 20-day window (day 19); no overlapping positions; 0.1% round trip.
+* **Metrics.** Trades, hit rate, average net return per trade with its t-statistic, total,
+  annualised Sharpe from the daily strategy series (flat days at zero, so comparable with
+  buy-and-hold), max drawdown; all again with the five most profitable trades removed.
+  Benchmarks: no position, full-sample buy-and-hold, the unconditional 15-day (or 20-day)
+  return of the metal, and long-only over each rule's own windows. Stability: average trade
+  by entry year; for rule (d) the threshold is re-estimated leaving that year out.
+
 ### `gold_events.model`
 
 The v1 regression, fitted strictly on windows that end on or before 2021-12-31 (the data
@@ -170,7 +194,7 @@ frame is truncated before anything is computed; tests check the cut).
   design is reported alongside.
 * **Baselines.** In-sample RMSE of no-change (predict zero) and controls-only OLS, on all
   windows and on event windows alone, for both severity versions.
-* **Refit.** The second half of the report repeats the exercise with the continuous
+* **Refit.** The second half of the report repeats the exercise with the capped continuous
   severity three ways (hand list by category, hand list pooled into one "any event x
   severity" term, mechanical list pooled), compares cross-validated RMSE against the
   controls-only baseline on all windows and on each list's event windows, reports the mean
@@ -196,9 +220,9 @@ frame is truncated before anything is computed; tests check the cut).
 * **Weekly series** (`fed_balance_sheet`, `bank_reserves`) are Wednesday values
   forward-filled; the coverage report marks these as not having a meaningful "missing" count.
 * **Severity scales.** The quintile version (`severity_quintile`) is compressed: 46 of the
-  68 events score 5. The continuous version (`severity_measured`) is dominated by September
-  11 (z = 19, several times any other event), so a term using it leans on that one row;
-  winsorising or logging it is a v2 item.
+  68 events score 5. The uncapped continuous version (`severity_measured`) is dominated by
+  September 11 (z = 19, several times any other event); `severity_capped` winsorises at
+  z = 3 and is what the model uses.
 * **Nothing after 2021 is stored.** `sentiment_after` is blank where the month after the
   event is past December 2021, and the model never reads data past 2021-12-31.
 
@@ -226,7 +250,9 @@ the per-index thresholds and the run merging on planted spikes. `tests/test_mode
 that the design rows equal the event-study returns, that events land on the right row (by
 category and pooled), that the sample end is a hard cut, that ridge at zero penalty equals
 OLS and at a huge penalty reduces to controls-only OLS, that out-of-fold residuals are real,
-and the HAC covariance at lag 0.
+and the HAC covariance at lag 0. `tests/test_strategies.py` checks the trade windows, the
+no-overlap rule, the retention ratios, the daily P&L and drawdown, largest-trade removal and
+the tension rule.
 
 `tests/test_event_study.py` builds synthetic prices where the asset is exactly
 beta times the controls plus known idiosyncratic shocks, and checks that: betas are

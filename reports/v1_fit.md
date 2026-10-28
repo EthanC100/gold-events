@@ -249,9 +249,9 @@ The controls carry the model. Over 20-day windows gold moves about -4.3% per per
 # Refit: continuous severity, pooled event term, mechanical list
 
 Same windows, controls, sample (2000-08-30 to 2021-12-31), ridge and blocked 5-fold CV as above.
-Severity is now the continuous measured score: the larger of the GPR and EPU 5-day jumps, each as a
-z-score against all daily jumps 1990-2021. Three event designs are compared with the controls-only
-baseline:
+Severity is now the continuous measured score, capped: the larger of the GPR and EPU 5-day jumps, each as
+a z-score against all daily jumps 1990-2021, winsorised at z = 3 (`severity_capped`). Three event designs
+are compared with the controls-only baseline:
 
 1. hand list, one severity x indicator term per category;
 2. hand list, a single `any_event` = severity x 1[any hand-list event has its day 0 at t];
@@ -259,9 +259,10 @@ baseline:
    runs), the same single pooled term with the same jump-based severity.
 
 A fourth row, the hand list's pooled term with September 11 removed, is a robustness check: that event's
-severity (z = 19) is several times any other, so a pooled term can be mostly a September 11 dummy.
+uncapped severity (z = 19) was several times any other; the cap limits it to 3, the same as the next
+largest events, but it remains the one event everyone would name first.
 
-In sample: 50 hand-list events (7 with negative severity, i.e. both indices fell into the event) and 138 mechanical events (5 negative). Severity is used as given, so a negative-severity event enters with its sign flipped.
+In sample: 50 hand-list events (7 with negative severity, i.e. both indices fell into the event; 11 capped at 3) and 138 mechanical events (5 negative; 12 capped). Severity is used as given, so a negative-severity event enters with its sign flipped.
 
 *CV RMSE* is the root mean squared out-of-fold residual from the blocked cross-validation at the chosen
 penalty (for controls only, plain OLS refitted per fold), on all windows and on the windows that start at
@@ -275,10 +276,10 @@ that 'moved gold' should show a mean abnormal return the mechanical list does no
 |---|---|---:|---:|---:|---:|
 | no change (predict 0) | - | 2.46% | 3.73% | 3.05% | 2.46% |
 | controls only | - | 2.19% | 3.48% | 2.71% | 2.13% |
-| hand list, category terms | 2.51e+05 | 2.19% | 3.48% | 2.71% | 2.13% |
-| hand list, pooled term | 1e+03 | 2.18% | 3.39% | 2.68% | 2.13% |
-| mechanical list, pooled term | 1.58e+03 | 2.18% | 3.44% | 2.70% | 2.13% |
-| hand list, pooled term, ex 9/11 | 631 | 2.18% | 3.43% | 2.70% | 2.13% |
+| hand list, category terms | 1e+07 (top of the grid: event terms shrunk to ~0) | 2.19% | 3.48% | 2.71% | 2.13% |
+| hand list, pooled term | 1.58e+03 | 2.18% | 3.45% | 2.70% | 2.13% |
+| mechanical list, pooled term | 1e+07 (top of the grid: event terms shrunk to ~0) | 2.19% | 3.48% | 2.71% | 2.13% |
+| hand list, pooled term, ex 9/11 | 1.58e+03 | 2.18% | 3.46% | 2.71% | 2.13% |
 
 Mean return and mean abnormal (controls-only, out-of-fold) return on event windows:
 
@@ -292,17 +293,17 @@ Event coefficients (% of return per unit of severity):
 
 | model | term | ridge: coef | SE | t | unpenalised: coef | SE | t |
 |---|---|---:|---:|---:|---:|---:|---:|
-| hand list, category terms | Banking or financial stress | +0.015 | 0.030 | +0.5 | +0.716 | 1.286 | +0.6 |
-| hand list, category terms | Central bank policy shock | -0.002 | 0.011 | -0.2 | -0.104 | 0.536 | -0.2 |
-| hand list, category terms | Election or leadership shock | +0.011 | 0.015 | +0.7 | +0.544 | 0.452 | +1.2 |
-| hand list, category terms | Military escalation | +0.005 | 0.005 | +0.9 | +0.228 | 0.232 | +1.0 |
-| hand list, category terms | Pandemic or disaster | -0.043 | 0.032 | -1.3 | -2.038 | 0.295 | -6.9 |
-| hand list, category terms | Sanctions and trade war | +0.005 | 0.004 | +1.2 | +0.232 | 0.210 | +1.1 |
-| hand list, category terms | Sovereign debt crisis | +0.037 | 0.025 | +1.5 | +1.775 | 0.305 | +5.8 |
-| hand list, category terms | Terror attack | +0.004 | 0.003 | +1.0 | +0.180 | 0.038 | +4.7 |
-| hand list, pooled term | any_event | +0.208 | 0.090 | +2.3 | +0.249 | 0.110 | +2.3 |
-| mechanical list, pooled term | any_event | +0.123 | 0.108 | +1.1 | +0.159 | 0.140 | +1.1 |
-| hand list, pooled term, ex 9/11 | any_event | +0.274 | 0.227 | +1.2 | +0.307 | 0.252 | +1.2 |
+| hand list, category terms | Banking or financial stress | +0.000 | 0.001 | +0.4 | +0.611 | 1.486 | +0.4 |
+| hand list, category terms | Central bank policy shock | -0.000 | 0.000 | -0.4 | -0.246 | 0.671 | -0.4 |
+| hand list, category terms | Election or leadership shock | +0.000 | 0.000 | +0.5 | +0.410 | 0.779 | +0.5 |
+| hand list, category terms | Military escalation | +0.000 | 0.000 | +0.7 | +0.229 | 0.293 | +0.8 |
+| hand list, category terms | Pandemic or disaster | -0.001 | 0.001 | -1.3 | -2.039 | 0.294 | -6.9 |
+| hand list, category terms | Sanctions and trade war | +0.000 | 0.000 | +1.2 | +0.282 | 0.245 | +1.2 |
+| hand list, category terms | Sovereign debt crisis | +0.001 | 0.001 | +1.4 | +1.772 | 0.304 | +5.8 |
+| hand list, category terms | Terror attack | +0.000 | 0.000 | +0.9 | +0.417 | 0.443 | +0.9 |
+| hand list, pooled term | any_event | +0.247 | 0.222 | +1.1 | +0.320 | 0.287 | +1.1 |
+| mechanical list, pooled term | any_event | +0.000 | 0.000 | +0.6 | +0.102 | 0.160 | +0.6 |
+| hand list, pooled term, ex 9/11 | any_event | +0.207 | 0.231 | +0.9 | +0.268 | 0.298 | +0.9 |
 
 ## Gold, 20-day windows
 
@@ -311,9 +312,9 @@ Event coefficients (% of return per unit of severity):
 | no change (predict 0) | - | 4.72% | 5.89% | 5.00% | 4.72% |
 | controls only | - | 4.18% | 6.18% | 4.32% | 4.01% |
 | hand list, category terms | 1e+07 (top of the grid: event terms shrunk to ~0) | 4.18% | 6.18% | 4.32% | 4.01% |
-| hand list, pooled term | 2.51e+03 | 4.18% | 6.11% | 4.32% | 4.01% |
+| hand list, pooled term | 0 (no shrinkage) | 4.18% | 6.06% | 4.30% | 4.01% |
 | mechanical list, pooled term | 1e+07 (top of the grid: event terms shrunk to ~0) | 4.18% | 6.18% | 4.32% | 4.01% |
-| hand list, pooled term, ex 9/11 | 0 (no shrinkage) | 4.17% | 5.98% | 4.29% | 4.01% |
+| hand list, pooled term, ex 9/11 | 0 (no shrinkage) | 4.18% | 6.06% | 4.30% | 4.01% |
 
 Mean return and mean abnormal (controls-only, out-of-fold) return on event windows:
 
@@ -327,17 +328,17 @@ Event coefficients (% of return per unit of severity):
 
 | model | term | ridge: coef | SE | t | unpenalised: coef | SE | t |
 |---|---|---:|---:|---:|---:|---:|---:|
-| hand list, category terms | Banking or financial stress | +0.001 | 0.001 | +0.7 | +1.873 | 2.047 | +0.9 |
-| hand list, category terms | Central bank policy shock | +0.000 | 0.001 | +0.6 | +0.889 | 1.181 | +0.8 |
-| hand list, category terms | Election or leadership shock | +0.000 | 0.000 | +0.2 | +0.138 | 0.850 | +0.2 |
-| hand list, category terms | Military escalation | +0.000 | 0.000 | +0.3 | +0.142 | 0.488 | +0.3 |
-| hand list, category terms | Pandemic or disaster | +0.001 | 0.000 | +1.3 | +1.157 | 0.255 | +4.5 |
-| hand list, category terms | Sanctions and trade war | +0.000 | 0.000 | +0.7 | +0.256 | 0.450 | +0.6 |
-| hand list, category terms | Sovereign debt crisis | +0.002 | 0.001 | +1.3 | +3.025 | 0.775 | +3.9 |
-| hand list, category terms | Terror attack | +0.000 | 0.000 | +1.5 | +0.128 | 0.067 | +1.9 |
-| hand list, pooled term | any_event | +0.231 | 0.144 | +1.6 | +0.340 | 0.245 | +1.4 |
-| mechanical list, pooled term | any_event | +0.000 | 0.000 | +0.5 | +0.092 | 0.186 | +0.5 |
-| hand list, pooled term, ex 9/11 | any_event | +0.716 | 0.438 | +1.6 | +0.716 | 0.438 | +1.6 |
+| hand list, category terms | Banking or financial stress | +0.001 | 0.001 | +0.7 | +1.829 | 2.438 | +0.8 |
+| hand list, category terms | Central bank policy shock | +0.000 | 0.001 | +0.4 | +0.626 | 1.424 | +0.4 |
+| hand list, category terms | Election or leadership shock | -0.000 | 0.001 | -0.4 | -0.464 | 1.254 | -0.4 |
+| hand list, category terms | Military escalation | +0.000 | 0.000 | +0.2 | +0.129 | 0.602 | +0.2 |
+| hand list, category terms | Pandemic or disaster | +0.001 | 0.000 | +1.3 | +1.154 | 0.256 | +4.5 |
+| hand list, category terms | Sanctions and trade war | +0.000 | 0.000 | +0.7 | +0.349 | 0.522 | +0.7 |
+| hand list, category terms | Sovereign debt crisis | +0.002 | 0.001 | +1.3 | +3.023 | 0.776 | +3.9 |
+| hand list, category terms | Terror attack | +0.000 | 0.000 | +1.4 | +0.902 | 0.505 | +1.8 |
+| hand list, pooled term | any_event | +0.715 | 0.516 | +1.4 | +0.715 | 0.516 | +1.4 |
+| mechanical list, pooled term | any_event | +0.000 | 0.000 | +0.2 | +0.049 | 0.216 | +0.2 |
+| hand list, pooled term, ex 9/11 | any_event | +0.722 | 0.543 | +1.3 | +0.722 | 0.543 | +1.3 |
 
 ## Silver, 5-day windows
 
@@ -345,9 +346,9 @@ Event coefficients (% of return per unit of severity):
 |---|---|---:|---:|---:|---:|
 | no change (predict 0) | - | 4.40% | 7.52% | 4.96% | 4.40% |
 | controls only | - | 3.97% | 6.55% | 4.26% | 3.89% |
-| hand list, category terms | 1.58e+03 | 3.96% | 6.26% | 4.28% | 3.87% |
+| hand list, category terms | 1.58e+03 | 3.96% | 6.33% | 4.28% | 3.87% |
 | hand list, pooled term | 1e+07 (top of the grid: event terms shrunk to ~0) | 3.97% | 6.55% | 4.26% | 3.89% |
-| mechanical list, pooled term | 2.51e+03 | 3.97% | 6.51% | 4.25% | 3.89% |
+| mechanical list, pooled term | 1e+07 (top of the grid: event terms shrunk to ~0) | 3.97% | 6.55% | 4.26% | 3.89% |
 | hand list, pooled term, ex 9/11 | 1e+07 (top of the grid: event terms shrunk to ~0) | 3.97% | 6.55% | 4.26% | 3.89% |
 
 Mean return and mean abnormal (controls-only, out-of-fold) return on event windows:
@@ -362,17 +363,17 @@ Event coefficients (% of return per unit of severity):
 
 | model | term | ridge: coef | SE | t | unpenalised: coef | SE | t |
 |---|---|---:|---:|---:|---:|---:|---:|
-| hand list, category terms | Banking or financial stress | -0.261 | 1.779 | -0.1 | -0.339 | 2.314 | -0.1 |
-| hand list, category terms | Central bank policy shock | -1.307 | 0.661 | -2.0 | -1.693 | 0.828 | -2.0 |
-| hand list, category terms | Election or leadership shock | +0.612 | 0.663 | +0.9 | +0.793 | 0.787 | +1.0 |
-| hand list, category terms | Military escalation | +0.226 | 0.262 | +0.9 | +0.293 | 0.342 | +0.9 |
-| hand list, category terms | Pandemic or disaster | -7.635 | 2.029 | -3.8 | -9.904 | 1.193 | -8.3 |
-| hand list, category terms | Sanctions and trade war | +0.261 | 0.202 | +1.3 | +0.340 | 0.291 | +1.2 |
-| hand list, category terms | Sovereign debt crisis | +1.354 | 0.569 | +2.4 | +1.751 | 0.728 | +2.4 |
-| hand list, category terms | Terror attack | +0.204 | 0.068 | +3.0 | +0.267 | 0.057 | +4.6 |
-| hand list, pooled term | any_event | +0.000 | 0.000 | +0.5 | +0.124 | 0.227 | +0.5 |
-| mechanical list, pooled term | any_event | +0.145 | 0.143 | +1.0 | +0.214 | 0.209 | +1.0 |
-| hand list, pooled term, ex 9/11 | any_event | -0.000 | 0.000 | -0.3 | -0.145 | 0.506 | -0.3 |
+| hand list, category terms | Banking or financial stress | -0.602 | 1.992 | -0.3 | -0.782 | 2.584 | -0.3 |
+| hand list, category terms | Central bank policy shock | -1.460 | 0.908 | -1.6 | -1.891 | 1.177 | -1.6 |
+| hand list, category terms | Election or leadership shock | +0.441 | 1.025 | +0.4 | +0.573 | 1.323 | +0.4 |
+| hand list, category terms | Military escalation | +0.280 | 0.322 | +0.9 | +0.363 | 0.417 | +0.9 |
+| hand list, category terms | Pandemic or disaster | -7.635 | 2.029 | -3.8 | -9.905 | 1.193 | -8.3 |
+| hand list, category terms | Sanctions and trade war | +0.323 | 0.231 | +1.4 | +0.419 | 0.326 | +1.3 |
+| hand list, category terms | Sovereign debt crisis | +1.352 | 0.569 | +2.4 | +1.747 | 0.728 | +2.4 |
+| hand list, category terms | Terror attack | +0.428 | 0.472 | +0.9 | +0.557 | 0.615 | +0.9 |
+| hand list, pooled term | any_event | -0.000 | 0.000 | -0.4 | -0.234 | 0.564 | -0.4 |
+| mechanical list, pooled term | any_event | +0.000 | 0.000 | +0.5 | +0.125 | 0.251 | +0.5 |
+| hand list, pooled term, ex 9/11 | any_event | -0.000 | 0.000 | -0.6 | -0.346 | 0.582 | -0.6 |
 
 ## Silver, 20-day windows
 
@@ -381,9 +382,9 @@ Event coefficients (% of return per unit of severity):
 | no change (predict 0) | - | 8.62% | 8.99% | 8.92% | 8.62% |
 | controls only | - | 7.78% | 8.76% | 7.84% | 7.61% |
 | hand list, category terms | 1e+07 (top of the grid: event terms shrunk to ~0) | 7.78% | 8.76% | 7.84% | 7.61% |
-| hand list, pooled term | 2.51e+03 | 7.78% | 8.73% | 7.84% | 7.61% |
-| mechanical list, pooled term | 1e+04 | 7.78% | 8.77% | 7.84% | 7.61% |
-| hand list, pooled term, ex 9/11 | 1.58e+03 | 7.78% | 8.69% | 7.81% | 7.60% |
+| hand list, pooled term | 6.31e+03 | 7.78% | 8.75% | 7.83% | 7.61% |
+| mechanical list, pooled term | 100 | 7.78% | 8.78% | 7.83% | 7.61% |
+| hand list, pooled term, ex 9/11 | 6.31e+03 | 7.78% | 8.75% | 7.83% | 7.61% |
 
 Mean return and mean abnormal (controls-only, out-of-fold) return on event windows:
 
@@ -397,24 +398,24 @@ Event coefficients (% of return per unit of severity):
 
 | model | term | ridge: coef | SE | t | unpenalised: coef | SE | t |
 |---|---|---:|---:|---:|---:|---:|---:|
-| hand list, category terms | Banking or financial stress | +0.000 | 0.001 | +0.1 | +0.382 | 2.501 | +0.2 |
-| hand list, category terms | Central bank policy shock | -0.001 | 0.001 | -1.2 | -1.417 | 1.403 | -1.0 |
-| hand list, category terms | Election or leadership shock | +0.001 | 0.001 | +0.7 | +1.275 | 1.123 | +1.1 |
-| hand list, category terms | Military escalation | +0.000 | 0.000 | +0.9 | +0.694 | 0.741 | +0.9 |
-| hand list, category terms | Pandemic or disaster | -0.000 | 0.002 | -0.3 | -0.805 | 2.496 | -0.3 |
-| hand list, category terms | Sanctions and trade war | +0.000 | 0.001 | +0.6 | +0.612 | 1.080 | +0.6 |
-| hand list, category terms | Sovereign debt crisis | +0.002 | 0.001 | +1.2 | +2.917 | 0.893 | +3.3 |
-| hand list, category terms | Terror attack | +0.000 | 0.000 | +1.0 | +0.084 | 0.123 | +0.7 |
-| hand list, pooled term | any_event | +0.163 | 0.173 | +0.9 | +0.240 | 0.274 | +0.9 |
-| mechanical list, pooled term | any_event | -0.048 | 0.102 | -0.5 | -0.138 | 0.295 | -0.5 |
-| hand list, pooled term, ex 9/11 | any_event | +0.456 | 0.432 | +1.1 | +0.591 | 0.553 | +1.1 |
+| hand list, category terms | Banking or financial stress | +0.000 | 0.002 | +0.0 | +0.040 | 2.850 | +0.0 |
+| hand list, category terms | Central bank policy shock | -0.001 | 0.001 | -1.3 | -2.039 | 1.656 | -1.2 |
+| hand list, category terms | Election or leadership shock | +0.001 | 0.001 | +0.5 | +1.059 | 2.016 | +0.5 |
+| hand list, category terms | Military escalation | +0.000 | 0.000 | +0.9 | +0.828 | 0.935 | +0.9 |
+| hand list, category terms | Pandemic or disaster | -0.000 | 0.002 | -0.3 | -0.807 | 2.497 | -0.3 |
+| hand list, category terms | Sanctions and trade war | +0.000 | 0.001 | +0.6 | +0.770 | 1.318 | +0.6 |
+| hand list, category terms | Sovereign debt crisis | +0.002 | 0.001 | +1.2 | +2.915 | 0.893 | +3.3 |
+| hand list, category terms | Terror attack | +0.001 | 0.001 | +1.1 | +1.295 | 1.149 | +1.1 |
+| hand list, pooled term | any_event | +0.224 | 0.300 | +0.7 | +0.488 | 0.652 | +0.7 |
+| mechanical list, pooled term | any_event | -0.225 | 0.351 | -0.6 | -0.229 | 0.358 | -0.6 |
+| hand list, pooled term, ex 9/11 | any_event | +0.235 | 0.316 | +0.7 | +0.511 | 0.687 | +0.7 |
 
 ## Reading
 
-**Does any event term help out of sample?** Barely. Across the 12 comparisons (two metals, two horizons, three designs) the largest improvement in cross-validated RMSE over controls-only is 0.006 percentage points on all windows and 0.28 points on the hand-list event windows (silver, 5-day, hand list, category terms), against event-window RMSEs of 3 to 9%. In 4 of the 12 fits cross-validation pushes the penalty to the top of the grid and removes the event terms outright. The mechanical list's pooled term never improves CV RMSE by more than 0.000 points.
+**Does any event term help out of sample?** Barely. Across the 12 comparisons (two metals, two horizons, three designs) the largest improvement in cross-validated RMSE over controls-only is 0.005 percentage points on all windows and 0.22 points on the hand-list event windows (silver, 5-day, hand list, category terms), against event-window RMSEs of 3 to 9%. In 7 of the 12 fits cross-validation pushes the penalty to the top of the grid and removes the event terms outright. The mechanical list's pooled term never improves CV RMSE by more than 0.000 points.
 
-**Which terms survive the shrinkage with |t| >= 2?** any_event (gold, 5-day, hand list, pooled term: +0.21% per unit, t = +2.3); Pandemic or disaster (silver, 5-day, hand list, category terms: -7.63% per unit, t = -3.8); Sovereign debt crisis (silver, 5-day, hand list, category terms: +1.35% per unit, t = +2.4); Terror attack (silver, 5-day, hand list, category terms: +0.20% per unit, t = +3.0). The hand list's pooled term for gold at 5 days is the only one that is not a two-to-four-event category; removing September 11 takes it from +0.21% (t = +2.3) to +0.27% (t = +1.2), so the point estimate survives but its significance came from September 11. The category terms that pass for silver at 5 days are the same two-to-four-event categories as before (the pandemic category is Fukushima and Covid), and their standard errors come from that handful of rows.
+**Which terms survive the shrinkage with |t| >= 2?** Pandemic or disaster (silver, 5-day, hand list, category terms: -7.64% per unit, t = -3.8); Sovereign debt crisis (silver, 5-day, hand list, category terms: +1.35% per unit, t = +2.4). No pooled term survives; the hand list's pooled term for gold is +0.25% per unit at 5 days (t = +1.1) and +0.72% at 20 days (t = +1.4). The category terms that pass for silver at 5 days are the same two-to-four-event categories as before (the pandemic category is Fukushima and Covid), and their standard errors come from that handful of rows.
 
 **Does the hand-picked list look biased?** Not in the sense of being days when gold happened to jump: the mean out-of-fold abnormal gold return on hand-list windows is +0.45% at 5 days and +0.74% at 20 days (SE 0.49 and 0.89), versus +0.23% and +0.20% on mechanical windows (SE 0.23 and 0.37), and none of these means is two standard errors from zero. The list is selected on something else: volatility. Controls-only CV RMSE on hand-list windows is 1.6x its value on all windows, against 1.2x for the mechanical windows, so the hand list is a list of days when markets were moving a lot, chosen knowing they did. It also covers different ground from the indices: 20 of its 68 events are never flagged by GPR or EPU (central-bank decisions, sovereign-debt episodes, the gold-system events), while the mechanical list is full of EPU spikes on US fiscal news that the hand list ignores, and 7 hand-list events have negative measured severity because the indices fell into them.
 
-**Verdict for v1.** With real yields, the dollar, the VIX and the GPR index in the regression, neither the hand-picked events nor the mechanically flagged ones add a detectable, out-of-sample-stable effect on gold or silver at 5 or 20 days, pooled or by category, with hand, quintile or continuous severity. The continuous severity is dominated by September 11 and should be winsorised or logged before v2; the mechanical list's merge rule turns long crises into single onset-dated events (the Iraq build-up runs from 2002-12-18 to 2003-05-22), which is the right unit for some questions and the wrong one for an invasion-day study.
+**Verdict for v1.** With real yields, the dollar, the VIX and the GPR index in the regression, neither the hand-picked events nor the mechanically flagged ones add a detectable, out-of-sample-stable effect on gold or silver at 5 or 20 days, pooled or by category, with hand, quintile or capped continuous severity. The mechanical list's merge rule turns long crises into single onset-dated events (the Iraq build-up runs from 2002-12-18 to 2003-05-22), which is the right unit for some questions and the wrong one for an invasion-day study.
