@@ -18,6 +18,8 @@ python -m gold_events.mechanical # index-flagged events -> data/events_mechanica
 python -m gold_events.model      # v1 fit + refit on 2000-08-30..2021-12-31 -> reports/v1_fit.md
 python -m gold_events.strategies # retention (H3) and four trading rules, in sample -> reports/strategies_v1.md
 python -m gold_events.oos        # frozen v1 on 2022-latest, no refit -> reports/v1_out_of_sample.md
+python log_week.py               # Monday: append this week's row to data/forward_log.csv
+python score_week.py             # fill realised moves for past rows -> reports/forward_scorecard.md
 pytest                           # tests for the maths (event study, scoring, model)
 ```
 
@@ -36,10 +38,15 @@ gold_events/
   model.py         v1 regression: returns on controls + severity x event terms, and the refit
   strategies.py    retention of net moves and four trading rules on both lists, with benchmarks
   oos.py           out-of-sample test of the frozen v1 (2022 to latest): errors, hit rates, drift, events
+  forward.py       weekly forward log and scorecard (log_week.py / score_week.py call this)
+log_week.py        Monday script: GPR, market probabilities, frozen-model prediction -> one row
+score_week.py      fills realised moves, running hit rate / error / Brier -> scorecard
 data/
   events.csv       68 hand-curated events with hand and measured severity columns
   events_mechanical.csv  202 index-flagged events 1990-2021, category left blank
-  v1_coefficients.csv    the frozen v1 control coefficients used by the out-of-sample test
+  v1_coefficients.csv    the frozen v1 control coefficients (written by oos.py, read by log_week.py)
+  tension_questions.yaml five placeholder questions with Polymarket/Metaculus URLs to fill in
+  forward_log.csv  one row per Monday (header only until the first run)
   daily.parquet    aligned daily frame (built, not committed)
   cache/           raw downloads (built, not committed)
 reports/
@@ -49,8 +56,12 @@ reports/
   v1_fit.md        v1 model coefficients, errors against baselines, refit comparison, readings
   strategies_v1.md retention stats, rule-by-rule metrics, year stability, verdicts
   v1_out_of_sample.md  frozen v1 on 2022-2026: errors vs baselines, drift, event net moves, verdict
+  forward_scorecard.md  running out-of-sample scorecard (written by score_week.py)
+.github/workflows/
+  log_week.yml     runs log_week.py and score_week.py every Monday 00:00 UTC and commits
 tests/
-  test_event_study.py, test_events.py, test_mechanical.py, test_model.py, test_strategies.py, test_oos.py
+  test_event_study.py, test_events.py, test_forward.py, test_mechanical.py, test_model.py,
+  test_oos.py, test_strategies.py
 ```
 
 ## Modules
@@ -289,7 +300,9 @@ category and pooled), that the sample end is a hard cut, that ridge at zero pena
 OLS and at a huge penalty reduces to controls-only OLS, that out-of-fold residuals are real,
 and the HAC covariance at lag 0. `tests/test_strategies.py` checks the trade windows, the
 no-overlap rule, the retention ratios, the daily P&L and drawdown, largest-trade removal and
-the tension rule.
+the tension rule. `tests/test_forward.py` checks the control changes and prediction
+arithmetic, the GPR snapshot, row building and appending, realised-move boundaries, the
+hit-rate and Brier maths, and Polymarket slug parsing with a mocked API.
 
 `tests/test_event_study.py` builds synthetic prices where the asset is exactly
 beta times the controls plus known idiosyncratic shocks, and checks that: betas are

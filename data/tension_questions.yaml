@@ -1,0 +1,44 @@
+# Fixed list of questions for the weekly forward log (log_week.py).
+#
+# Fill in the url for each question. Supported sources:
+#   polymarket: any https://polymarket.com/event/<slug> or .../market/<slug> link;
+#               the probability of the first outcome (Yes) is logged.
+#   metaculus:  any https://www.metaculus.com/questions/<id>/... link (binary questions);
+#               set METACULUS_TOKEN in the environment if the API refuses anonymous calls.
+# When a question resolves, set resolved: true and outcome: 1 (yes) or 0 (no);
+# score_week.py then scores every logged probability for it.
+#
+# The ids are column suffixes in data/forward_log.csv (market_prob_<id>, my_prob_<id>),
+# so keep them short and do not rename them once logging has started.
+
+questions:
+  - id: q1
+    question: "Placeholder: direct military conflict between major powers X and Y before <date>?"
+    source: polymarket
+    url: ""
+    resolved: false
+    outcome: null
+  - id: q2
+    question: "Placeholder: ceasefire in <conflict> holds through <date>?"
+    source: polymarket
+    url: ""
+    resolved: false
+    outcome: null
+  - id: q3
+    question: "Placeholder: new sanctions package on <country> announced before <date>?"
+    source: metaculus
+    url: ""
+    resolved: false
+    outcome: null
+  - id: q4
+    question: "Placeholder: <central bank> cuts rates at its <month> meeting?"
+    source: polymarket
+    url: ""
+    resolved: false
+    outcome: null
+  - id: q5
+    question: "Placeholder: oil (Brent) above $<level> on <date>?"
+    source: polymarket
+    url: ""
+    resolved: false
+    outcome: null
