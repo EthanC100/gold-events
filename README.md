@@ -3,8 +3,8 @@
 An event study of how gold and silver react to geopolitical and policy events,
 with controls for the dollar and real yields. Python, pandas, free data only.
 
-Status: data pipeline, event-study maths and the first analysis (US midterm
-elections) are done. `data/events.csv` is an empty template waiting for events.
+Status: data pipeline, event-study maths, the midterm analysis, a 68-event list with
+hand and measured severity, and a first (v1) regression model fitted on 2000-2021.
 
 ## Quick start
 
@@ -12,7 +12,9 @@ elections) are done. `data/events.csv` is an empty template waiting for events.
 pip install -e ".[dev]"
 python -m gold_events.data       # download + cache + align -> data/daily.parquet, reports/data_coverage.md
 python -m gold_events.midterms   # first analysis -> reports/midterms.md
-pytest                           # tests for the event-study maths
+python -m gold_events.events     # measured severity -> columns added in place to data/events.csv
+python -m gold_events.model      # v1 fit on 2000-08-30..2021-12-31 -> reports/v1_fit.md
+pytest                           # tests for the maths (event study, scoring, model)
 ```
 
 The first command takes a minute or two (a dozen HTTP downloads). Raw downloads are
@@ -25,15 +27,18 @@ gold_events/
   data.py          download, cache, align, coverage report
   event_study.py   raw and net returns around a date (the maths)
   midterms.py      first analysis: every US midterm since 1994
+  events.py        event list + measured severity from GPR, EPU and consumer sentiment
+  model.py         v1 regression: returns on controls + severity x category terms
 data/
-  events.csv       event list (empty template: date, category, event, countries, severity, source)
+  events.csv       68 hand-curated events with hand and measured severity columns
   daily.parquet    aligned daily frame (built, not committed)
-  cache/           raw CSV downloads (built, not committed)
+  cache/           raw downloads (built, not committed)
 reports/
   data_coverage.md what each source delivered, and the gaps
   midterms.md      the midterm tables and reading
+  v1_fit.md        v1 model coefficients, errors against baselines, reading
 tests/
-  test_event_study.py
+  test_event_study.py, test_events.py, test_model.py
 ```
 
 ## Modules
@@ -45,10 +50,13 @@ Builds one aligned daily DataFrame from 1990 to today and saves it as parquet.
 * **Sources.** Each series has an ordered list of sources to try. Gold and silver
   try Stooq spot (`xauusd`, `xagusd`) first and fall back to Yahoo COMEX front-month
   futures (`GC=F`, `SI=F`). DXY and the S&P 500 come from Yahoo (`DX-Y.NYB`, `^GSPC`).
-  Everything else comes from FRED's public CSV endpoint: `VIXCLS`, `DFII10`, `DGS10`,
-  `CPIAUCSL`, `DFEDTAR`/`DFEDTARU`, `WALCL`, `WRESBAL`. FRED's LBMA gold and silver
-  fixes (`GOLDAMGBD228NLBM` etc.) were discontinued and now return 404, so they are
-  not used.
+  Macro series come from FRED's public CSV endpoint: `VIXCLS`, `DFII10`, `DGS10`,
+  `CPIAUCSL`, `DFEDTAR`/`DFEDTARU`, `WALCL`, `WRESBAL`, `UMCSENT`. The daily
+  Geopolitical Risk index (Caldara-Iacoviello, `GPRD`) comes from matteoiacoviello.com
+  and the daily US Economic Policy Uncertainty index from policyuncertainty.com; both are
+  defined on every calendar day and the aligned frame keeps the trading-day value. FRED's
+  LBMA gold and silver fixes (`GOLDAMGBD228NLBM` etc.) were discontinued and now return
+  404, so they are not used.
 * **Caching.** Each raw download is stored as `data/cache/<source>_<symbol>.csv`
   and reused for 24 hours. If a download fails and a stale cache exists, the stale
   copy is used with a warning.
@@ -72,7 +80,7 @@ Builds one aligned daily DataFrame from 1990 to today and saves it as parquet.
 
 Columns of `data/daily.parquet`: `gold`, `silver`, `dxy`, `real_yield`,
 `real_yield_source`, `dfii10`, `dgs10`, `cpi_yoy`, `sp500`, `vix`, `fed_funds_target`,
-`fed_balance_sheet` ($ millions), `bank_reserves` ($ millions).
+`fed_balance_sheet` ($ millions), `bank_reserves` ($ millions), `gpr`, `epu`, `umcsent`.
 
 ### `gold_events.event_study`
 
@@ -108,6 +116,41 @@ the House changed hands (1994, 2006, 2010, 2018, 2022 yes; 1998, 2002, 2014 no),
 attribution table showing what the controls explained at 20 days, and a one-paragraph
 reading generated from the numbers. Output: `reports/midterms.md`.
 
+### `gold_events.events`
+
+Reads the hand columns of `data/events.csv` and writes the measured columns back in place
+(re-running overwrites only the measured columns).
+
+* **GPR and EPU jump.** For each event, the mean of the index over days 0..4 minus the
+  mean over days -5..-1, where "day" is a calendar day because both indices exist on
+  every day, and day 0 is the event date itself (or the next available day).
+* **1-5 score.** The same before/after jump is computed for every day from 1990 to 2021,
+  and the event's jump is ranked against that distribution's quintiles. `severity_measured`
+  is the larger of the GPR and EPU scores.
+* **Consumer sentiment.** Michigan sentiment in the calendar month after the event minus
+  the month before.
+* **Clustering flag.** `near_other_event` is true when another event's day 0 is within 20
+  trading days; `nearest_event_days` gives the distance.
+
+### `gold_events.model`
+
+The v1 regression, fitted strictly on windows that end on or before 2021-12-31 (the data
+frame is truncated before anything is computed; tests check the cut).
+
+* **Observations.** One per trading day t: the h-day log return from the close of t-1 to
+  the close of t+h-1, for h = 5 and 20, so the rows are overlapping windows.
+* **Regressors over the same window.** Change in the 10y real yield, change in log DXY,
+  change in log VIX, change in the daily GPR index, and one term per event category equal
+  to severity x 1[an event of that category has its day 0 at t]. The event term is
+  therefore non-zero only on the row that *is* that event's window.
+* **Estimator.** Ridge on the event terms only, with the controls unpenalised; the penalty
+  is picked by 5-fold blocked (contiguous in time) cross-validation on the standardised
+  design. Standard errors are Newey-West with lag h in a sandwich around the ridge
+  estimator, back-transformed to the natural scale. The unpenalised OLS on the same
+  design is reported alongside.
+* **Baselines.** In-sample RMSE of no-change (predict zero) and controls-only OLS, on all
+  windows and on event windows alone, for both severity versions.
+
 ## Data caveats
 
 * **Gold and silver before August 2000.** Stooq was not reachable from the environment
@@ -126,6 +169,11 @@ reading generated from the numbers. Output: `reports/midterms.md`.
   estimated on it for 2002 and earlier are correspondingly weaker.
 * **Weekly series** (`fed_balance_sheet`, `bank_reserves`) are Wednesday values
   forward-filled; the coverage report marks these as not having a meaningful "missing" count.
+* **Measured severity is compressed.** Taking the larger of two quintile ranks against all
+  days gives 46 of the 68 events a 5, so `severity_measured` behaves almost like an on/off
+  indicator in the model.
+* **One post-2021 datum in `events.csv`.** `sentiment_after` for the 2021-12-09 event is
+  the January 2022 Michigan reading. It is not used by the model.
 
 ## First result: midterms
 
@@ -144,6 +192,12 @@ conventions: ISO dates, `countries` as a semicolon-separated list of ISO codes,
 `severity` as an integer scale you define once and stick to.
 
 ## Tests
+
+`tests/test_events.py` checks the before/after windows, the quintile scoring, weekend
+events and the clustering flag on planted jumps. `tests/test_model.py` checks that the
+design rows equal the event-study returns, that events land on the right row, that the
+sample end is a hard cut, that ridge at zero penalty equals OLS and at a huge penalty
+reduces to controls-only OLS, and the HAC covariance at lag 0.
 
 `tests/test_event_study.py` builds synthetic prices where the asset is exactly
 beta times the controls plus known idiosyncratic shocks, and checks that: betas are

@@ -23,6 +23,13 @@ Derived columns
                      CPI inflation.  ``real_yield_source`` labels each row.
 ``fed_funds_target`` FRED DFEDTAR (single target) to 2008-12-15, then the
                      *upper* bound of the target range (DFEDTARU).
+
+Risk indices
+------------
+``gpr`` and ``epu`` are news-based daily indices defined on every calendar
+day.  The aligned frame keeps the value on each trading day; the raw
+all-days series are available through :func:`fetch_cached` (used by
+:mod:`gold_events.events` for the 5-day averages around events).
 """
 
 from __future__ import annotations
@@ -90,10 +97,34 @@ def fetch_fred(series_id: str) -> pd.Series:
     return df.set_index("observation_date")[series_id].astype(float)
 
 
+def fetch_gpr(column: str = "GPRD") -> pd.Series:
+    """Daily Geopolitical Risk index (Caldara & Iacoviello), all calendar days from 1985."""
+    url = "https://www.matteoiacoviello.com/gpr_files/data_gpr_daily_recent.xls"
+    raw = requests.get(url, timeout=HTTP_TIMEOUT * 3).content
+    df = pd.read_excel(io.BytesIO(raw))  # needs xlrd
+    if column not in df.columns:
+        raise RuntimeError(f"GPR file has no column {column}; columns: {list(df.columns)[:8]}")
+    idx = pd.to_datetime(df["DAY"].astype(int).astype(str), format="%Y%m%d")
+    return pd.Series(df[column].astype(float).to_numpy(), index=idx, name="gpr")
+
+
+def fetch_epu(column: str = "daily_policy_index") -> pd.Series:
+    """Daily US Economic Policy Uncertainty index (Baker, Bloom & Davis), all calendar days from 1985."""
+    url = "https://www.policyuncertainty.com/media/All_Daily_Policy_Data.csv"
+    text = requests.get(url, timeout=HTTP_TIMEOUT).text
+    if not text.lstrip().startswith("day,month,year"):
+        raise RuntimeError(f"EPU download is not the expected CSV: {text[:80]!r}")
+    df = pd.read_csv(io.StringIO(text))
+    idx = pd.to_datetime(df[["year", "month", "day"]])
+    return pd.Series(df[column].astype(float).to_numpy(), index=idx, name="epu")
+
+
 FETCHERS: dict[str, Callable[[str], pd.Series]] = {
     "stooq": fetch_stooq,
     "yahoo": fetch_yahoo,
     "fred": fetch_fred,
+    "gpr": fetch_gpr,
+    "epu": fetch_epu,
 }
 
 
@@ -171,12 +202,19 @@ SERIES: list[SeriesSpec] = [
                note="Fed total assets, $ millions, weekly (Wednesday), forward-filled."),
     SeriesSpec("bank_reserves", [("fred", "WRESBAL")], ffill_limit=None, freq="weekly",
                note="Reserve balances with Federal Reserve Banks, $ millions, weekly, forward-filled."),
+    SeriesSpec("gpr", [("gpr", "GPRD")],
+               note="Daily Geopolitical Risk index (Caldara-Iacoviello, 1985-2019=100); value on the trading day."),
+    SeriesSpec("epu", [("epu", "daily_policy_index")],
+               note="Daily US Economic Policy Uncertainty index (Baker-Bloom-Davis); value on the trading day."),
+    SeriesSpec("umcsent", [("fred", "UMCSENT")], ffill_limit=None, freq="monthly",
+               note="University of Michigan consumer sentiment, monthly, forward-filled."),
 ]
 
 # Columns of the final aligned frame, in order.
 COLUMNS = [
     "gold", "silver", "dxy", "real_yield", "real_yield_source", "dfii10", "dgs10",
     "cpi_yoy", "sp500", "vix", "fed_funds_target", "fed_balance_sheet", "bank_reserves",
+    "gpr", "epu", "umcsent",
 ]
 
 
@@ -332,7 +370,7 @@ def coverage_markdown(coverage: list[Coverage], df: pd.DataFrame) -> str:
         lines.append(f"| {name} | {c.source} | {first} | {last} | {c.n_obs} | {missing} | {c.note} |")
 
     lines += ["", "## Gaps and warnings", ""]
-    stale_tolerance = {"daily": 10, "weekly": 14, "monthly": 50}
+    stale_tolerance = {"daily": 10, "weekly": 14, "monthly": 62}
     warned = False
     for c in coverage:
         if c.component:

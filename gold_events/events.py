@@ -1,0 +1,124 @@
+"""Event list and measured severity.
+
+``data/events.csv`` holds the hand-curated columns (``date, category, event,
+countries, severity_hand, source``).  Running ``python -m gold_events.events``
+adds measured columns in place:
+
+``gpr_before / gpr_after / gpr_change``   5-day mean of the daily Geopolitical
+    Risk index before the event (days -5..-1) and from day 0 (days 0..4), and
+    the difference.  Both indices exist on every calendar day, so "day" here
+    is a calendar day and day 0 is the event date itself.
+``epu_*``                                 same for the daily US Economic Policy
+    Uncertainty index.
+``gpr_score / epu_score``                 the jump on a 1-5 scale: quintiles of
+    the same before/after jump computed on *every* day 1990-2021.
+``severity_measured``                     max(gpr_score, epu_score).
+``sentiment_before / sentiment_after / sentiment_change``
+    Michigan consumer sentiment (UMCSENT) in the month before and the month
+    after the event, and the difference.
+``near_other_event``                      True if another event's day 0 is within
+    20 trading days; ``nearest_event_days`` is the distance (trading days).
+"""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from gold_events import data
+from gold_events.event_study import first_trading_day_on_or_after
+
+EVENTS_PATH = data.DATA_DIR / "events.csv"
+HAND_COLUMNS = ["date", "category", "event", "countries", "severity_hand", "source"]
+QUANTILE_START, QUANTILE_END = pd.Timestamp("1990-01-01"), pd.Timestamp("2021-12-31")
+PRE_DAYS = POST_DAYS = 5
+NEAR_DAYS = 20
+
+
+def load_events(path=EVENTS_PATH) -> pd.DataFrame:
+    ev = pd.read_csv(path, parse_dates=["date"])
+    ev = ev.sort_values("date").reset_index(drop=True)
+    return ev
+
+
+def jump_series(index: pd.Series, pre: int = PRE_DAYS, post: int = POST_DAYS) -> pd.DataFrame:
+    """For every day d: mean over [d, d+post-1] minus mean over [d-pre, d-1].
+
+    Returns a frame with columns ``before``, ``after``, ``change`` indexed by d.
+    """
+    s = index.sort_index()
+    after = s.rolling(post).mean().shift(-(post - 1))  # mean of d..d+post-1
+    before = s.rolling(pre).mean().shift(1)            # mean of d-pre..d-1
+    return pd.DataFrame({"before": before, "after": after, "change": after - before})
+
+
+def quintile_edges(values: pd.Series) -> list[float]:
+    """The four cut points that split ``values`` into quintiles."""
+    return [float(values.quantile(q)) for q in (0.2, 0.4, 0.6, 0.8)]
+
+
+def quintile_score(x: float, edges: list[float]) -> float:
+    """1-5 by position relative to the quintile edges (NaN stays NaN)."""
+    if pd.isna(x):
+        return float("nan")
+    return 1 + sum(x > e for e in edges)
+
+
+def _at(jumps: pd.DataFrame, date: pd.Timestamp) -> pd.Series:
+    """Row of ``jumps`` on ``date`` or the first available day after it."""
+    pos = jumps.index.searchsorted(date)
+    if pos >= len(jumps):
+        return pd.Series({"before": float("nan"), "after": float("nan"), "change": float("nan")})
+    return jumps.iloc[pos]
+
+
+def score_events(events: pd.DataFrame, gpr: pd.Series, epu: pd.Series, umcsent: pd.Series,
+                 calendar: pd.DatetimeIndex) -> pd.DataFrame:
+    """Add the measured columns to a copy of ``events`` (hand columns untouched)."""
+    ev = events[HAND_COLUMNS].copy()
+    for name, series in (("gpr", gpr), ("epu", epu)):
+        jumps = jump_series(series)
+        edges = quintile_edges(jumps.loc[QUANTILE_START:QUANTILE_END, "change"].dropna())
+        rows = ev["date"].apply(lambda d: _at(jumps, d))
+        ev[f"{name}_before"] = rows["before"].round(1).to_numpy()
+        ev[f"{name}_after"] = rows["after"].round(1).to_numpy()
+        ev[f"{name}_change"] = rows["change"].round(1).to_numpy()
+        ev[f"{name}_score"] = [quintile_score(x, edges) for x in rows["change"]]
+    ev["severity_measured"] = ev[["gpr_score", "epu_score"]].max(axis=1)
+
+    monthly = umcsent.copy()
+    monthly.index = monthly.index.to_period("M")
+    months = ev["date"].dt.to_period("M")
+    ev["sentiment_before"] = [monthly.get(m - 1, float("nan")) for m in months]
+    ev["sentiment_after"] = [monthly.get(m + 1, float("nan")) for m in months]
+    ev["sentiment_change"] = (ev["sentiment_after"] - ev["sentiment_before"]).round(1)
+
+    day0 = [first_trading_day_on_or_after(calendar, d) for d in ev["date"]]
+    pos = pd.Series([int(calendar.get_loc(d)) for d in day0])
+    dist = [int((pos.drop(i) - p).abs().min()) if len(pos) > 1 else 10 ** 6 for i, p in pos.items()]
+    ev["nearest_event_days"] = dist
+    ev["near_other_event"] = ev["nearest_event_days"] <= NEAR_DAYS
+    return ev
+
+
+def main() -> None:
+    import logging
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    events = load_events()
+    gpr = data.fetch_cached("gpr", "GPRD")
+    epu = data.fetch_cached("epu", "daily_policy_index")
+    umcsent = data.fetch_cached("fred", "UMCSENT")
+    calendar = data.load().index
+    scored = score_events(events, gpr, epu, umcsent, calendar)
+    scored.to_csv(EVENTS_PATH, index=False, date_format="%Y-%m-%d")
+    print(f"Scored {len(scored)} events -> {EVENTS_PATH}")
+    cols = ["date", "category", "severity_hand", "gpr_change", "gpr_score", "epu_change", "epu_score",
+            "severity_measured", "sentiment_change", "nearest_event_days", "near_other_event"]
+    with pd.option_context("display.width", 200, "display.max_rows", 200):
+        print(scored[cols].to_string(index=False))
+    print("\nhand vs measured severity (rows = hand):")
+    print(pd.crosstab(scored.severity_hand, scored.severity_measured))
+
+
+if __name__ == "__main__":
+    main()

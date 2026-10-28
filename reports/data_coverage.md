@@ -19,6 +19,9 @@ daily series' own span with no observation (not meaningful for weekly/monthly se
 | fed_funds_target | derived | 1990-01-02 | 2026-10-27 | 9273 | 0 | DFEDTAR to 2008-12-15, then DFEDTARU (upper bound of range). |
 | fed_balance_sheet | fred:WALCL | 2002-12-18 | 2026-10-21 | 1245 | - | Fed total assets, $ millions, weekly (Wednesday), forward-filled. |
 | bank_reserves | fred:WRESBAL | 2002-12-18 | 2026-10-21 | 1245 | - | Reserve balances with Federal Reserve Banks, $ millions, weekly, forward-filled. |
+| gpr | gpr:GPRD | 1990-01-02 | 2026-10-26 | 9272 | 0 | Daily Geopolitical Risk index (Caldara-Iacoviello, 1985-2019=100); value on the trading day. |
+| epu | epu:daily_policy_index | 1990-01-02 | 2026-10-27 | 9273 | 0 | Daily US Economic Policy Uncertainty index (Baker-Bloom-Davis); value on the trading day. |
+| umcsent | fred:UMCSENT | 1990-02-01 | 2026-09-01 | 440 | - | University of Michigan consumer sentiment, monthly, forward-filled. |
 | fed_funds_target_single (component) | fred:DFEDTAR | 1990-01-02 | 2008-12-15 | 4780 | 0 | Fed funds target rate, single value, to 2008-12-15. |
 | fed_funds_target_upper (component) | fred:DFEDTARU | 2008-12-16 | 2026-10-27 | 4493 | 0 | Fed funds target range upper bound, from 2008-12-16. |
 
@@ -29,3 +32,4 @@ daily series' own span with no observation (not meaningful for weekly/monthly se
 - **dfii10** starts 2003-01-02, after the 1990-01-02 start (13.0 years missing).
 - **fed_balance_sheet** starts 2002-12-18, after the 1990-01-02 start (13.0 years missing).
 - **bank_reserves** starts 2002-12-18, after the 1990-01-02 start (13.0 years missing).
+- **umcsent** ends 2026-09-01; may be stale.
