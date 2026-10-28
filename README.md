@@ -18,6 +18,7 @@ python -m gold_events.mechanical # index-flagged events -> data/events_mechanica
 python -m gold_events.model      # v1 fit + refit on 2000-08-30..2021-12-31 -> reports/v1_fit.md
 python -m gold_events.strategies # retention (H3) and four trading rules, in sample -> reports/strategies_v1.md
 python -m gold_events.oos        # frozen v1 on 2022-latest, no refit -> reports/v1_out_of_sample.md
+python -m gold_events.v2         # v2 factors + rolling coefficients + switching rule -> reports/v2_fit.md
 python log_week.py               # Monday: append this week's row to data/forward_log.csv
 python score_week.py             # fill realised moves for past rows -> reports/forward_scorecard.md
 pytest                           # tests for the maths (event study, scoring, model)
@@ -38,13 +39,18 @@ gold_events/
   model.py         v1 regression: returns on controls + severity x event terms, and the refit
   strategies.py    retention of net moves and four trading rules on both lists, with benchmarks
   oos.py           out-of-sample test of the frozen v1 (2022 to latest): errors, hit rates, drift, events
+  v2.py            v1 + GLD holdings + lagged central-bank buying: train to 2021, frozen test 2022 on
+  rolling.py       rolling five-year refits of the v1 controls, plots, and the switching rule
   forward.py       weekly forward log and scorecard (log_week.py / score_week.py call this)
 log_week.py        Monday script: GPR, market probabilities, frozen-model prediction -> one row
 score_week.py      fills realised moves, running hit rate / error / Brier -> scorecard
 data/
   events.csv       68 hand-curated events with hand and measured severity columns
   events_mechanical.csv  202 index-flagged events 1990-2021, category left blank
-  v1_coefficients.csv    the frozen v1 control coefficients (written by oos.py, read by log_week.py)
+  v1_coefficients.csv    the frozen v1 control coefficients (written by oos.py; never overwritten)
+  v2_coefficients.csv    the frozen v2 coefficients with SEs (written by v2.py)
+  v2_rolling_coefficients.csv  the latest five-year window's v1-spec coefficients (written by rolling.py)
+  forward_model.txt      which coefficients log_week.py uses: v1 or v2-rolling (written by rolling.py)
   tension_questions.yaml five placeholder questions with Polymarket/Metaculus URLs to fill in
   forward_log.csv  one row per Monday (header only until the first run)
   daily.parquet    aligned daily frame (built, not committed)
@@ -56,12 +62,14 @@ reports/
   v1_fit.md        v1 model coefficients, errors against baselines, refit comparison, readings
   strategies_v1.md retention stats, rule-by-rule metrics, year stability, verdicts
   v1_out_of_sample.md  frozen v1 on 2022-2026: errors vs baselines, drift, event net moves, verdict
+  v2_fit.md        v2 coefficients, frozen test vs v1, drift and stability; rolling coefficients and the rule
+  figures/         rolling_<asset>_h<h>.png, one panel per coefficient with its SE band
   forward_scorecard.md  running out-of-sample scorecard (written by score_week.py)
 .github/workflows/
   log_week.yml     runs log_week.py and score_week.py every Monday 00:00 UTC and commits
 tests/
   test_event_study.py, test_events.py, test_forward.py, test_mechanical.py, test_model.py,
-  test_oos.py, test_strategies.py
+  test_oos.py, test_strategies.py, test_v2.py
 ```
 
 ## Modules
@@ -74,7 +82,14 @@ Builds one aligned daily DataFrame from 1990 to today and saves it as parquet.
   try Stooq spot (`xauusd`, `xagusd`) first and fall back to Yahoo COMEX front-month
   futures (`GC=F`, `SI=F`). DXY and the S&P 500 come from Yahoo (`DX-Y.NYB`, `^GSPC`).
   Macro series come from FRED's public CSV endpoint: `VIXCLS`, `DFII10`, `DGS10`,
-  `CPIAUCSL`, `DFEDTAR`/`DFEDTARU`, `WALCL`, `WRESBAL`, `UMCSENT`. The daily
+  `CPIAUCSL`, `DFEDTAR`/`DFEDTARU`, `WALCL`, `WRESBAL`, `UMCSENT`. GLD holdings in tonnes
+  come from SPDR's historical-archive API (xlsx, daily from 2004-11-18). Official-sector net
+  gold purchases come from the IMF's International Reserves and Foreign Currency Liquidity
+  data (monthly gold holdings in fine troy ounces per reporting country, differenced and
+  summed over reporters with data in consecutive months, euro-area aggregate and two
+  reporters with unit breaks dropped), then summed by quarter, lagged one quarter and
+  interpolated to daily as `cb_net_purchases`. The World Gold Council's own file needs a
+  Goldhub login and could not be downloaded here. The daily
   Geopolitical Risk index (Caldara-Iacoviello, `GPRD`) comes from matteoiacoviello.com
   and the daily US Economic Policy Uncertainty index from policyuncertainty.com; both are
   defined on every calendar day and the aligned frame keeps the trading-day value. FRED's
@@ -103,7 +118,8 @@ Builds one aligned daily DataFrame from 1990 to today and saves it as parquet.
 
 Columns of `data/daily.parquet`: `gold`, `silver`, `dxy`, `real_yield`,
 `real_yield_source`, `dfii10`, `dgs10`, `cpi_yoy`, `sp500`, `vix`, `fed_funds_target`,
-`fed_balance_sheet` ($ millions), `bank_reserves` ($ millions), `gpr`, `epu`, `umcsent`.
+`fed_balance_sheet` ($ millions), `bank_reserves` ($ millions), `gpr`, `epu`, `umcsent`,
+`gld_tonnes`, `cb_net_purchases` (tonnes per quarter, lagged one quarter).
 
 ### `gold_events.event_study`
 
@@ -171,6 +187,24 @@ trading days of a start, overlap anywhere inside a mechanical event's span, hand
 the indices never flagged, and the ten largest mechanical events absent from the hand list.
 The merge rule turns long crises into single onset-dated events (the Iraq build-up runs from
 2002-12-18 to 2003-05-22), which is why the span-based overlap is reported too.
+
+### `gold_events.v2` and `gold_events.rolling`
+
+`v2` adds two demand factors to the v1 design: the change in GLD holdings over the window
+(tonnes) and official-sector buying during the window at the lagged quarterly pace
+(`cb_net_purchases` at the window end times h/63). It trains on 2004-11 to 2021-12 (GLD's
+start) with the same ridge and cross-validation, refits the v1 specification on the same rows
+for a fair comparison, then tests both frozen on every window from 2022 on with the same
+metrics as the v1 test, and compares the train coefficients with an OLS refit on the test
+period. `data/v2_coefficients.csv` is written beside v1.
+
+`rolling` refits the v1 controls-only OLS on five-year windows stepped quarterly from 2005 to
+the latest date, plots each coefficient with its standard-error band and the v1 value
+(`reports/figures/`), and applies the pre-set rule: if every v1 coefficient (intercept and
+four controls, both metals, 5-day horizon) lies inside the interquartile range of the windows
+ending in the last five years, the forward log keeps v1; otherwise it switches to the latest
+window's coefficients as `v2-rolling`. The decision is written to `data/forward_model.txt`,
+which `log_week.py` reads, and each log row records its `model_version`.
 
 ### `gold_events.strategies`
 
@@ -248,6 +282,8 @@ sensitivities still hold, not of a forecast made before the window opened.
 | 2 | Do event categories explain returns beyond the controls (v1, 2000-2021)? | `reports/v1_fit.md` | No. Real yields, the dollar and the GPR index carry the model; cross-validation shrinks the category terms to zero in 6 of 8 fits, and the pooled or mechanical-list terms do no better. |
 | 3 | Does an event list support a trading rule in sample? | `reports/strategies_v1.md` | No rule beats gold's own drift after costs; the net move persists from 5 to 20 days but the tradable raw move does not. |
 | 4 | Does the frozen v1 hold up on 2022-2026, with no refit? | `reports/v1_out_of_sample.md` | The control betas do: v1 beats no-change on all four asset-horizon pairs (gold RMSE 2.34% vs 2.64% at 5 days, 4.28% vs 5.14% at 20), also with the five largest windows removed, calls direction right 65-77% of the time, and a refit on the test period moves no sensitivity by more than 1.5 SE. It misses a persistent upward drift (mean error about +1.1% per 20-day gold window, +1.5% silver). Event net moves with v1 betas: invasion/reserve freeze, SVB and October 2023 positive; the June 2022 rate shock and the 2025 tariffs negative. |
+| 5 | Do GLD flows and central-bank buying (v2) explain more, and shrink the drift? | `reports/v2_fit.md` | GLD flows do (t of 7-10 in training, RMSE down on all four pairs out of sample) but only contemporaneously, and the GLD beta nearly doubles in the test period. Lagged central-bank buying adds nothing. The unexplained drift gets about 20% larger under v2, not smaller: the 2024-2026 rally ran with flat GLD holdings. |
+| 6 | Are the v1 betas stable over time? | `reports/v2_fit.md`, `reports/figures/` | No. Gold's real-yield beta was near zero before 2013, -7 to -12 in 2014-2021 windows, and about -4 now; the GPR beta has risen since 2020; the intercept is at a two-decade high. The pre-set rule fires (9 of 10 coefficients outside the recent IQR), so the forward log now uses the latest five-year window as v2-rolling. |
 
 ## Data caveats
 

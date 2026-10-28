@@ -22,8 +22,11 @@ daily series' own span with no observation (not meaningful for weekly/monthly se
 | gpr | gpr:GPRD | 1990-01-02 | 2026-10-26 | 9272 | 0 | Daily Geopolitical Risk index (Caldara-Iacoviello, 1985-2019=100); value on the trading day. |
 | epu | epu:daily_policy_index | 1990-01-02 | 2026-10-27 | 9273 | 0 | Daily US Economic Policy Uncertainty index (Baker-Bloom-Davis); value on the trading day. |
 | umcsent | fred:UMCSENT | 1990-02-01 | 2026-09-01 | 440 | - | University of Michigan consumer sentiment, monthly, forward-filled. |
+| gld_tonnes | spdr:Tonnes of Gold | 2004-11-18 | 2026-10-27 | 5518 | 1 | SPDR Gold Shares (GLD) holdings, tonnes, daily from 2004-11-18. |
+| cb_net_purchases | imf:IRFCLDT1_IRFCL56V_FTO | 2000-06-30 | 2026-12-31 | 107 | - | Official-sector net gold purchases, tonnes per quarter (IMF IRFCL reporters), lagged one quarter, interpolated to daily. |
 | fed_funds_target_single (component) | fred:DFEDTAR | 1990-01-02 | 2008-12-15 | 4780 | 0 | Fed funds target rate, single value, to 2008-12-15. |
 | fed_funds_target_upper (component) | fred:DFEDTARU | 2008-12-16 | 2026-10-27 | 4493 | 0 | Fed funds target range upper bound, from 2008-12-16. |
+| cb_net_monthly (component) | imf:IRFCLDT1_IRFCL56V_FTO | 2000-01-31 | 2026-09-30 | 321 | - | Net change in official gold holdings, tonnes per month, summed over IMF IRFCL reporters. |
 
 ## Gaps and warnings
 
@@ -32,3 +35,5 @@ daily series' own span with no observation (not meaningful for weekly/monthly se
 - **dfii10** starts 2003-01-02, after the 1990-01-02 start (13.0 years missing).
 - **fed_balance_sheet** starts 2002-12-18, after the 1990-01-02 start (13.0 years missing).
 - **bank_reserves** starts 2002-12-18, after the 1990-01-02 start (13.0 years missing).
+- **gld_tonnes** starts 2004-11-18, after the 1990-01-02 start (14.9 years missing).
+- **cb_net_purchases** starts 2000-06-30, after the 1990-01-02 start (10.5 years missing).

@@ -44,7 +44,10 @@ log = logging.getLogger(__name__)
 
 QUESTIONS_PATH = data.DATA_DIR / "tension_questions.yaml"
 LOG_PATH = data.DATA_DIR / "forward_log.csv"
-FROZEN_PATH = data.DATA_DIR / "v1_coefficients.csv"
+FROZEN_PATHS = {"v1": data.DATA_DIR / "v1_coefficients.csv",
+                "v2-rolling": data.DATA_DIR / "v2_rolling_coefficients.csv"}
+POINTER_PATH = data.DATA_DIR / "forward_model.txt"  # written by gold_events.rolling per the switching rule
+FROZEN_PATH = FROZEN_PATHS["v1"]
 UNIT_MULT = {"d_real_yield": 1.0, "dlog_dxy": 0.01, "dlog_vix": 0.01, "d_gpr": 100.0}  # as in model.CONTROL_UNITS
 SCORECARD_PATH = data.ROOT / "reports" / "forward_scorecard.md"
 HORIZON = 5
@@ -119,10 +122,26 @@ def fetch_probabilities(questions: list[dict]) -> dict[str, float]:
 # --------------------------------------------------------------------------
 
 
-def load_frozen(path: Path = FROZEN_PATH, h: int = HORIZON) -> dict:
-    """The frozen v1 for horizon ``h``, converted from the CSV's percent-per-unit columns to log units."""
+def model_version(pointer: Path | None = None) -> str:
+    """Which frozen coefficients the forward log uses: ``v1`` unless the rolling rule switched it."""
+    pointer = POINTER_PATH if pointer is None else pointer
+    if Path(pointer).exists():
+        v = Path(pointer).read_text().strip()
+        if v in FROZEN_PATHS:
+            return v
+    return "v1"
+
+
+def load_frozen(path: Path | None = None, h: int = HORIZON, version: str | None = None) -> dict:
+    """The frozen coefficients for horizon ``h``, converted from percent-per-unit columns to log units.
+
+    ``path`` wins if given; otherwise the file for ``version`` (default: the pointer file's choice).
+    """
+    if path is None:
+        version = version or model_version()
+        path = FROZEN_PATHS[version]
     table = pd.read_csv(path)
-    out = {"controls": CONTROL_COLS, "horizon_days": h, "assets": {}}
+    out = {"controls": CONTROL_COLS, "horizon_days": h, "assets": {}, "version": version or "custom"}
     for r in table[table.h == h].itertuples():
         out["assets"][r.asset] = {
             "intercept": float(r.intercept_pct) / 100.0,
@@ -172,7 +191,7 @@ def gpr_snapshot(gpr: pd.Series) -> dict:
 
 def columns(questions: list[dict]) -> list[str]:
     ids = [q["id"] for q in questions]
-    return (["log_date", "data_as_of", "gpr_date", "gpr_level", "gpr_change_week"]
+    return (["log_date", "model_version", "data_as_of", "gpr_date", "gpr_level", "gpr_change_week"]
             + [f"{c}_lastweek" for c in CONTROL_COLS]
             + [f"pred_{a}_5d" for a in ASSETS]
             + [f"market_prob_{i}" for i in ids]
@@ -184,6 +203,7 @@ def build_row(log_date, questions: list[dict], frozen: dict, df: pd.DataFrame | 
               probs: dict[str, float], note: str = "") -> dict:
     row = {c: np.nan for c in columns(questions)}
     row["log_date"] = pd.Timestamp(log_date).strftime("%Y-%m-%d")
+    row["model_version"] = frozen.get("version", "v1")
     row.update({k: (v.strftime("%Y-%m-%d") if k == "gpr_date" else v) for k, v in gpr_snapshot(gpr).items()})
     if df is not None:
         ch = last_week_changes(df)
@@ -236,7 +256,7 @@ def log_week(log_date=None, path: Path = LOG_PATH, refresh: bool = True) -> dict
     probs = fetch_probabilities(questions)
     row = build_row(log_date, questions, frozen, df, gpr, probs, note)
     append_row(row, path)
-    print(f"Logged {row['log_date']}: pred gold {row['pred_gold_5d']}, silver {row['pred_silver_5d']}, "
+    print(f"Logged {row['log_date']} ({row['model_version']}): pred gold {row['pred_gold_5d']}, silver {row['pred_silver_5d']}, "
           f"GPR {row['gpr_level']:.1f} ({row['gpr_change_week']:+.1f} on the week)")
     return row
 
@@ -308,8 +328,9 @@ def scorecard_markdown(logdf: pd.DataFrame, questions: list[dict]) -> str:
     L = ["# Forward scorecard", "",
          f"Updated {pd.Timestamp.now('UTC'):%Y-%m-%d}. {len(logdf)} weeks logged, "
          f"{int(logdf['realised_gold_5d'].notna().sum()) if 'realised_gold_5d' in logdf else 0} with realised moves.", "",
-         "## Frozen v1 model, 5-day prediction vs realised", "",
-         "Prediction = controls-only v1 (fitted to 2021-12-31) applied to last week's control changes.",
+         "## Frozen model, 5-day prediction vs realised", "",
+         "Prediction = the frozen coefficients named in each row's `model_version` (v1 fitted to 2021-12-31, or",
+         "v2-rolling, the latest five-year window) applied to last week's control changes.",
          "Hit rate = share of weeks with the right sign. MAE is compared with predicting no change.", "",
          "| asset | weeks | direction hit rate | mean error (realised - pred) | MAE | MAE of no change |",
          "|---|---:|---:|---:|---:|---:|"]
@@ -323,12 +344,12 @@ def scorecard_markdown(logdf: pd.DataFrame, questions: list[dict]) -> str:
           f"| me | {b['my_n']} | {b['my_brier']:.3f} |" if b["my_n"] else "| me | 0 | - |",
           f"| market | {b['market_n']} | {b['market_brier']:.3f} |" if b["market_n"] else "| market | 0 | - |", ""]
     if len(logdf):
-        L += ["## Rows", "", "| week | pred gold | realised gold | pred silver | realised silver | GPR | GPR change | my tension |",
-              "|---|---:|---:|---:|---:|---:|---:|---:|"]
+        L += ["## Rows", "", "| week | model | pred gold | realised gold | pred silver | realised silver | GPR | GPR change | my tension |",
+              "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
         for _, r in logdf.iterrows():
             def pc(x):
                 return "-" if pd.isna(x) else f"{100 * float(x):+.2f}%"
-            L.append(f"| {r['log_date']} | {pc(r.get('pred_gold_5d'))} | {pc(r.get('realised_gold_5d'))} | "
+            L.append(f"| {r['log_date']} | {r.get('model_version', 'v1')} | {pc(r.get('pred_gold_5d'))} | {pc(r.get('realised_gold_5d'))} | "
                      f"{pc(r.get('pred_silver_5d'))} | {pc(r.get('realised_silver_5d'))} | "
                      f"{r.get('gpr_level', float('nan')):.0f} | {r.get('gpr_change_week', float('nan')):+.0f} | "
                      f"{'' if pd.isna(r.get('my_tension_score')) else r.get('my_tension_score')} |")

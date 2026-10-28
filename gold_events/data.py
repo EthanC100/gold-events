@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import io
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -119,12 +120,70 @@ def fetch_epu(column: str = "daily_policy_index") -> pd.Series:
     return pd.Series(df[column].astype(float).to_numpy(), index=idx, name="epu")
 
 
+TROY_OZ_PER_TONNE = 32150.7466
+MAX_HOLDINGS_T = 9000.0   # no reporter holds more than the US (8,133 t)
+MAX_MONTHLY_T = 500.0     # no central bank trades this much in a month; larger = unit break
+
+
+def fetch_spdr_gld(column: str = "Tonnes of Gold") -> pd.Series:
+    """Daily GLD trust holdings from SPDR's historical archive (xlsx), from 2004-11-18."""
+    url = "https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en"
+    raw = requests.get(url, timeout=HTTP_TIMEOUT * 3).content
+    df = pd.read_excel(io.BytesIO(raw), sheet_name="US GLD Historical Archive")  # needs openpyxl
+    if column not in df.columns:
+        raise RuntimeError(f"GLD archive has no column {column!r}; columns: {list(df.columns)[:6]}")
+    dates = pd.to_datetime(df["Date"], format="%d-%b-%Y", errors="coerce")
+    vals = pd.to_numeric(df[column], errors="coerce")
+    return pd.Series(vals.to_numpy(), index=dates).dropna().rename("gld_tonnes")
+
+
+def fetch_imf_cb_gold(indicator: str = "IRFCLDT1_IRFCL56V_FTO") -> pd.Series:
+    """Monthly net change in official gold holdings, tonnes, summed over IMF IRFCL reporters.
+
+    Each reporter's monthly holdings in fine troy ounces are differenced; a
+    month's world figure is the sum over reporters with data in both months,
+    so a country joining the survey does not count as a purchase.  The SCALE
+    attribute is ignored (values are already in ounces: USA = 8,133 tonnes).
+    Aggregates (euro area) are dropped, and so is any reporter whose level
+    exceeds MAX_HOLDINGS_T or whose monthly change ever exceeds MAX_MONTHLY_T,
+    which marks a unit break in the source rather than a trade.
+    """
+    url = f"https://api.imf.org/external/sdmx/2.1/data/IMF.STA,IRFCL/.{indicator}..M?startPeriod=1999-01"
+    text = requests.get(url, timeout=HTTP_TIMEOUT * 5).text
+    series = re.findall(r"<Series ([^>]*)>(.*?)</Series>", text, flags=re.S)
+    if not series:
+        raise RuntimeError(f"IMF IRFCL returned no series: {text[:120]!r}")
+    frames = {}
+    for attrs, body in series:
+        country = re.search(r'COUNTRY="([^"]+)"', attrs).group(1)
+        if not re.fullmatch(r"[A-Z]{3}", country):
+            continue  # G163 etc. are aggregates of members already in the list
+        obs = re.findall(r'TIME_PERIOD="(\d{4})-M(\d{2})" OBS_VALUE="([^"]*)"', body)
+        if not obs:
+            continue
+        idx = pd.PeriodIndex([f"{y}-{m}" for y, m, _ in obs], freq="M")
+        vals = pd.to_numeric(pd.Series([v for _, _, v in obs]), errors="coerce").to_numpy() / TROY_OZ_PER_TONNE
+        frames[country] = pd.Series(vals, index=idx)  # duplicates (same country, two series) collapse
+    holdings = pd.DataFrame(frames).sort_index()
+    holdings = holdings.reindex(pd.period_range(holdings.index.min(), holdings.index.max(), freq="M"))
+    changes = holdings.diff()
+    bad = [c for c in holdings.columns
+           if holdings[c].max() > MAX_HOLDINGS_T or changes[c].abs().max() > MAX_MONTHLY_T]
+    if bad:
+        log.warning("IMF gold: dropping reporters with implausible units or breaks: %s", ", ".join(bad))
+    net = changes.drop(columns=bad).sum(axis=1, min_count=1)
+    net.index = net.index.to_timestamp(how="end").normalize()
+    return net.dropna().rename("cb_net_monthly")
+
+
 FETCHERS: dict[str, Callable[[str], pd.Series]] = {
     "stooq": fetch_stooq,
     "yahoo": fetch_yahoo,
     "fred": fetch_fred,
     "gpr": fetch_gpr,
     "epu": fetch_epu,
+    "spdr": fetch_spdr_gld,
+    "imf": fetch_imf_cb_gold,
 }
 
 
@@ -208,13 +267,17 @@ SERIES: list[SeriesSpec] = [
                note="Daily US Economic Policy Uncertainty index (Baker-Bloom-Davis); value on the trading day."),
     SeriesSpec("umcsent", [("fred", "UMCSENT")], ffill_limit=None, freq="monthly",
                note="University of Michigan consumer sentiment, monthly, forward-filled."),
+    SeriesSpec("gld_tonnes", [("spdr", "Tonnes of Gold")],
+               note="SPDR Gold Shares (GLD) holdings, tonnes, daily from 2004-11-18."),
+    SeriesSpec("cb_net_monthly", [("imf", "IRFCLDT1_IRFCL56V_FTO")], ffill_limit=None, freq="monthly", component=True,
+               note="Net change in official gold holdings, tonnes per month, summed over IMF IRFCL reporters."),
 ]
 
 # Columns of the final aligned frame, in order.
 COLUMNS = [
     "gold", "silver", "dxy", "real_yield", "real_yield_source", "dfii10", "dgs10",
     "cpi_yoy", "sp500", "vix", "fed_funds_target", "fed_balance_sheet", "bank_reserves",
-    "gpr", "epu", "umcsent",
+    "gpr", "epu", "umcsent", "gld_tonnes", "cb_net_purchases",
 ]
 
 
@@ -335,6 +398,20 @@ def build(refresh: bool = False, start: pd.Timestamp = START) -> tuple[pd.DataFr
                                        np.where(proxy.notna(), "DGS10-CPI proxy", None))
     coverage.append(coverage_of("real_yield", df["real_yield"], calendar, "derived",
                                 "DFII10 where available (2003-), else DGS10 minus trailing 12m CPI inflation."))
+
+    # Central-bank net purchases: quarterly sum of the monthly IMF series (complete quarters only),
+    # lagged one quarter so only published data is used, then interpolated linearly to daily.
+    monthly = raw["cb_net_monthly"]
+    q = monthly.groupby(monthly.index.to_period("Q")).agg(["sum", "count"])
+    quarterly = q.loc[q["count"] == 3, "sum"]
+    quarterly.index = (quarterly.index + 1).to_timestamp(how="end").normalize()  # quarter Q known by end of Q+1
+    grid = calendar.union(quarterly.index)
+    daily = quarterly.reindex(grid).interpolate(method="time", limit_area="inside").ffill()
+    df["cb_net_purchases"] = daily.reindex(calendar)
+    coverage.append(coverage_of("cb_net_purchases", quarterly, calendar, sources["cb_net_monthly"],
+                                "Official-sector net gold purchases, tonnes per quarter (IMF IRFCL reporters), "
+                                "lagged one quarter, interpolated to daily.", freq="monthly"))
+    df = df.drop(columns=["cb_net_monthly"])
 
     # Fed funds target: single target to 2008-12-15, then the range's upper bound.
     df["fed_funds_target"] = df["fed_funds_target_single"].where(

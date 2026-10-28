@@ -131,3 +131,22 @@ def test_polymarket_slug_parsing(monkeypatch):
     p = fw.polymarket_probability("https://polymarket.com/event/some-event-slug?tid=1")
     assert p == pytest.approx(0.23)
     assert calls[0][1] == "some-event-slug" and calls[1][0].endswith("/events")
+
+
+def test_model_version_pointer_selects_coefficients(tmp_path, monkeypatch):
+    v1 = tmp_path / "v1.csv"
+    v2 = tmp_path / "v2r.csv"
+    head = ("asset,h,intercept_pct,lambda,d_real_yield_pct_per_unit,dlog_dxy_pct_per_unit,"
+            "dlog_vix_pct_per_unit,d_gpr_pct_per_unit\n")
+    v1.write_text(head + "gold,5,0.1,0,-3,-1,0,0.2\nsilver,5,0.1,0,-3,-1.6,0,0.3\n")
+    v2.write_text(head + "gold,5,0.4,0,-4,-0.9,0,0.3\nsilver,5,0.4,0,-3,-1.7,0,0.5\n")
+    monkeypatch.setattr(fw, "FROZEN_PATHS", {"v1": v1, "v2-rolling": v2})
+    pointer = tmp_path / "forward_model.txt"
+    monkeypatch.setattr(fw, "POINTER_PATH", pointer)
+    assert fw.model_version() == "v1"                      # no pointer file: v1
+    assert fw.load_frozen()["assets"]["gold"]["intercept"] == pytest.approx(0.001)
+    pointer.write_text("v2-rolling\n")
+    f = fw.load_frozen()
+    assert f["version"] == "v2-rolling" and f["assets"]["gold"]["intercept"] == pytest.approx(0.004)
+    pointer.write_text("nonsense\n")
+    assert fw.model_version() == "v1"                      # unknown value falls back to v1
