@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# gold-events: downloaded data (rebuild with `python -m gold_events.data`)
+data/cache/
+data/daily.parquet
