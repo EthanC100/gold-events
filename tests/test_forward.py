@@ -69,6 +69,7 @@ def test_build_append_and_score(tmp_path):
     row = fw.build_row(df.index[30], QUESTIONS, FROZEN, df.iloc[:31], gpr.iloc[:31], {"q1": 0.4, "q2": float("nan")})
     assert row["log_date"] == df.index[30].strftime("%Y-%m-%d")
     assert row["my_tension_score"] == "" and row["my_prob_q1"] == ""
+    assert row["claude_tension_score"] == "" and row["claude_prob_q2"] == ""
     assert row["market_prob_q1"] == 0.4 and np.isnan(row["market_prob_q2"])
     assert "last week's control changes" in row["note"]
     fw.append_row(row, path)
@@ -83,6 +84,7 @@ def test_build_append_and_score(tmp_path):
     # scoring: first row's week has passed, second has not
     logdf.loc[0, "my_prob_q1"] = 0.9
     logdf.loc[1, "my_prob_q1"] = 0.7
+    logdf.loc[0, "claude_prob_q1"] = 0.8
     scored = fw.fill_realised(logdf, df)
     expected = np.log(df.gold.iloc[35] / df.gold.iloc[30])
     assert scored.loc[0, "realised_gold_5d"] == pytest.approx(expected)
@@ -94,8 +96,9 @@ def test_build_append_and_score(tmp_path):
     b = fw.brier(scored, QUESTIONS)  # only q1 is resolved (outcome 1): my probs 0.9, 0.7; market 0.4, 0.6
     assert b["my_n"] == 2 and b["my_brier"] == pytest.approx(np.mean([(0.9 - 1) ** 2, (0.7 - 1) ** 2]))
     assert b["market_n"] == 2 and b["market_brier"] == pytest.approx(np.mean([(0.4 - 1) ** 2, (0.6 - 1) ** 2]))
+    assert b["claude_n"] == 1 and b["claude_brier"] == pytest.approx((0.8 - 1) ** 2)
     text = fw.scorecard_markdown(scored, QUESTIONS)
-    assert "| gold | 1 |" in text and "| me | 2 |" in text
+    assert "| gold | 1 |" in text and "| me | 2 |" in text and "| claude | 1 |" in text
 
 
 def test_realised_moves_boundaries():

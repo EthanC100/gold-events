@@ -12,13 +12,14 @@
   forecast of the controls: it assumes the coming week's changes in the real
   yield, the dollar, the VIX and GPR equal last week's;
 * blank columns for your own tension score (0-10) and your own probability
-  on each question, to be filled in by hand.
+  on each question, to be filled in by hand, and the same pair of columns
+  for Claude's score and probabilities (``claude_*``), filled in when asked.
 
 ``score_week.py`` (``score_week()``) fills in the realised 5-day gold and
 silver moves for rows whose week has passed, then writes
 ``reports/forward_scorecard.md`` with the running direction hit rate, mean
 error, mean absolute error (against a no-change baseline) and the Brier
-score of your probabilities versus the market's on questions marked
+score of three forecasters, you, Claude and the market, on questions marked
 resolved in the YAML.
 
 Realised move for a row logged on date D: log return from the last close on
@@ -201,6 +202,7 @@ def columns(questions: list[dict]) -> list[str]:
             + [f"pred_{a}_5d" for a in ASSETS]
             + [f"market_prob_{i}" for i in ids]
             + ["my_tension_score"] + [f"my_prob_{i}" for i in ids]
+            + ["claude_tension_score"] + [f"claude_prob_{i}" for i in ids]
             + [f"realised_{a}_5d" for a in ASSETS] + ["realised_through", "note"])
 
 
@@ -220,8 +222,10 @@ def build_row(log_date, questions: list[dict], frozen: dict, df: pd.DataFrame | 
     for i, p in probs.items():
         row[f"market_prob_{i}"] = p
     row["my_tension_score"] = ""
+    row["claude_tension_score"] = ""
     for q in questions:
         row[f"my_prob_{q['id']}"] = ""
+        row[f"claude_prob_{q['id']}"] = ""
     row["note"] = note or "prediction uses last week's control changes as the coming week's input"
     return row
 
@@ -312,20 +316,28 @@ def prediction_stats(logdf: pd.DataFrame) -> dict:
     return out
 
 
+FORECASTERS = {"me": "my_prob_", "claude": "claude_prob_", "market": "market_prob_"}
+
+
 def brier(logdf: pd.DataFrame, questions: list[dict]) -> dict:
-    """Brier scores of my and the market's probabilities over resolved questions, pooled across rows."""
-    mine, market = [], []
+    """Brier scores of each forecaster's probabilities over resolved questions, pooled across rows."""
+    buckets = {name: [] for name in FORECASTERS}
     for q in questions:
         if not q.get("resolved") or q.get("outcome") is None:
             continue
         o = float(q["outcome"])
-        for col, bucket in ((f"my_prob_{q['id']}", mine), (f"market_prob_{q['id']}", market)):
+        for name, prefix in FORECASTERS.items():
+            col = f"{prefix}{q['id']}"
             if col in logdf.columns:
                 p = pd.to_numeric(logdf[col], errors="coerce").dropna()
-                bucket += [(float(x) - o) ** 2 for x in p]
-    return {"n_resolved": sum(1 for q in questions if q.get("resolved") and q.get("outcome") is not None),
-            "my_n": len(mine), "my_brier": float(np.mean(mine)) if mine else float("nan"),
-            "market_n": len(market), "market_brier": float(np.mean(market)) if market else float("nan")}
+                buckets[name] += [(float(x) - o) ** 2 for x in p]
+    out = {"n_resolved": sum(1 for q in questions if q.get("resolved") and q.get("outcome") is not None)}
+    for name, b in buckets.items():
+        out[f"{name}_n"] = len(b)
+        out[f"{name}_brier"] = float(np.mean(b)) if b else float("nan")
+    # backward-compatible aliases
+    out["my_n"], out["my_brier"] = out["me_n"], out["me_brier"]
+    return out
 
 
 def scorecard_markdown(logdf: pd.DataFrame, questions: list[dict]) -> str:
@@ -345,19 +357,22 @@ def scorecard_markdown(logdf: pd.DataFrame, questions: list[dict]) -> str:
     L += ["", "## Probabilities: Brier score (lower is better)", "",
           f"{b['n_resolved']} of {len(questions)} questions resolved. Pooled over every logged probability on a "
           "resolved question.", "",
-          "| forecaster | probabilities scored | Brier |", "|---|---:|---:|",
-          f"| me | {b['my_n']} | {b['my_brier']:.3f} |" if b["my_n"] else "| me | 0 | - |",
-          f"| market | {b['market_n']} | {b['market_brier']:.3f} |" if b["market_n"] else "| market | 0 | - |", ""]
+          "| forecaster | probabilities scored | Brier |", "|---|---:|---:|"]
+    for name in FORECASTERS:
+        n, score = b[f"{name}_n"], b[f"{name}_brier"]
+        L.append(f"| {name} | {n} | {score:.3f} |" if n else f"| {name} | 0 | - |")
+    L.append("")
     if len(logdf):
-        L += ["## Rows", "", "| week | model | pred gold | realised gold | pred silver | realised silver | GPR | GPR change | my tension |",
-              "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
+        L += ["## Rows", "", "| week | model | pred gold | realised gold | pred silver | realised silver | GPR | GPR change | my tension | Claude tension |",
+              "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
         for _, r in logdf.iterrows():
             def pc(x):
                 return "-" if pd.isna(x) else f"{100 * float(x):+.2f}%"
             L.append(f"| {r['log_date']} | {r.get('model_version', 'v1')} | {pc(r.get('pred_gold_5d'))} | {pc(r.get('realised_gold_5d'))} | "
                      f"{pc(r.get('pred_silver_5d'))} | {pc(r.get('realised_silver_5d'))} | "
                      f"{r.get('gpr_level', float('nan')):.0f} | {r.get('gpr_change_week', float('nan')):+.0f} | "
-                     f"{'' if pd.isna(r.get('my_tension_score')) else r.get('my_tension_score')} |")
+                     f"{'' if pd.isna(r.get('my_tension_score')) else r.get('my_tension_score')} | "
+                     f"{'' if pd.isna(r.get('claude_tension_score')) else r.get('claude_tension_score')} |")
     return "\n".join(L) + "\n"
 
 

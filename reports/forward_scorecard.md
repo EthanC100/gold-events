@@ -20,10 +20,11 @@ Hit rate = share of weeks with the right sign. MAE is compared with predicting n
 | forecaster | probabilities scored | Brier |
 |---|---:|---:|
 | me | 0 | - |
+| claude | 0 | - |
 | market | 0 | - |
 
 ## Rows
 
-| week | model | pred gold | realised gold | pred silver | realised silver | GPR | GPR change | my tension |
-|---|---|---:|---:|---:|---:|---:|---:|---:|
-| 2026-10-28 | v2-rolling | +0.27% | - | -0.71% | - | 165 | -56 |  |
+| week | model | pred gold | realised gold | pred silver | realised silver | GPR | GPR change | my tension | Claude tension |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2026-10-28 | v2-rolling | +0.27% | - | -0.71% | - | 165 | -56 |  | 6 |
