@@ -1,6 +1,6 @@
 # Forward scorecard
 
-Updated 2026-10-28. 1 weeks logged, 0 with realised moves.
+Updated 2026-11-02. 2 weeks logged, 0 with realised moves.
 
 ## Frozen model, 5-day prediction vs realised
 
@@ -27,4 +27,5 @@ Hit rate = share of weeks with the right sign. MAE is compared with predicting n
 
 | week | model | pred gold | realised gold | pred silver | realised silver | GPR | GPR change | my tension | Claude tension |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 2026-10-28 | v2-rolling | +0.27% | - | -0.71% | - | 165 | -56 |  | 6 |
+| 2026-10-28 | v2-rolling | +0.27% | - | -0.71% | - | 165 | -56 |  | 6.0 |
+| 2026-11-02 | v2-rolling | +0.47% | - | +1.01% | - | 165 | -56 |  |  |
