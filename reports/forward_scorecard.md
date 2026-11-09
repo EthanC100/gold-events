@@ -1,6 +1,6 @@
 # Forward scorecard
 
-Updated 2026-11-02. 2 weeks logged, 0 with realised moves.
+Updated 2026-11-09. 3 weeks logged, 1 with realised moves.
 
 ## Frozen model, 5-day prediction vs realised
 
@@ -10,8 +10,8 @@ Hit rate = share of weeks with the right sign. MAE is compared with predicting n
 
 | asset | weeks | direction hit rate | mean error (realised - pred) | MAE | MAE of no change |
 |---|---:|---:|---:|---:|---:|
-| gold | 0 | - | - | - | - |
-| silver | 0 | - | - | - | - |
+| gold | 1 | 1.00 | +0.25% | 0.25% | 0.53% |
+| silver | 1 | 1.00 | -1.82% | 1.82% | 2.53% |
 
 ## Probabilities: Brier score (lower is better)
 
@@ -27,5 +27,6 @@ Hit rate = share of weeks with the right sign. MAE is compared with predicting n
 
 | week | model | pred gold | realised gold | pred silver | realised silver | GPR | GPR change | my tension | Claude tension |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 2026-10-28 | v2-rolling | +0.27% | - | -0.71% | - | 165 | -56 |  | 6.0 |
+| 2026-10-28 | v2-rolling | +0.27% | +0.53% | -0.71% | -2.53% | 165 | -56 |  | 6.0 |
 | 2026-11-02 | v2-rolling | +0.47% | - | +1.01% | - | 165 | -56 |  |  |
+| 2026-11-09 | v2-rolling | -0.12% | - | -2.50% | - | 98 | -68 |  |  |
